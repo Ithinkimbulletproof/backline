@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint and types
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          enable-cache: true
+      - name: Install
+        run: uv sync --locked --extra cpu --extra web
+      - name: Ruff
+        run: uv run ruff check .
+      - name: Formatting
+        run: uv run ruff format --check .
+      - name: Mypy
+        run: uv run mypy
+
+  test:
+    name: Tests (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    env:
+      BACKLINE_CONFIG: configs/tiny.yaml
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          enable-cache: true
+      - name: Install
+        run: uv sync --locked --extra cpu --extra web
+      - name: Django checks
+        run: uv run python manage.py check
+      - name: Pytest
+        run: uv run pytest
+      - name: Synthetic corpus smoke run
+        run: uv run backline synth --n 3 --out "${{ runner.temp }}/synth"
