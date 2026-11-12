@@ -50,6 +50,32 @@ body {
 .muted { color: var(--muted); }
 .steps li { margin: 0.25rem 0; }
 
+.stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  list-style: none;
+  padding: 0;
+  color: var(--muted);
+}
+
+.stats strong { color: var(--fg); }
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.table th,
+.table td {
+  text-align: left;
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.table th { color: var(--muted); font-weight: 600; }
+
 code {
   background: #f0f0ec;
   padding: 0.1rem 0.35rem;

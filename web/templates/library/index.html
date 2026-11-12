@@ -2,5 +2,19 @@
 {% block title %}Библиотека · Backline{% endblock %}
 {% block content %}
 <h1>Библиотека</h1>
-<p class="muted">Песен пока нет. Импорт табов: <code>python manage.py import_tabs</code> (появится в следующей фазе).</p>
+{% if total %}
+<ul class="stats">
+  {% for label, count in statuses %}<li><strong>{{ count }}</strong> {{ label }}</li>{% endfor %}
+</ul>
+<table class="table">
+  <thead><tr><th>Исполнитель</th><th>Песня</th><th>Такты</th><th>Гитары</th><th>Сплит</th></tr></thead>
+  <tbody>
+  {% for song in songs %}
+    <tr><td>{{ song.artist|default:"—" }}</td><td>{{ song.title }}</td><td>{{ song.n_bars }}</td><td>{{ song.n_guitars }}</td><td>{{ song.split }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="muted">Песен пока нет. Положите табы в папку <code>BACKLINE_TABS_DIR</code> и выполните <code>python manage.py import_tabs</code>.</p>
+{% endif %}
 {% endblock %}

@@ -87,7 +87,8 @@ ignore = ["RUF001", "RUF002", "RUF003"]
 "huey".msg = "The core package must not depend on the task queue: keep it in web/."
 
 [tool.ruff.lint.per-file-ignores]
-"web/**" = ["TID251"]
+# Django declares models, admin options and Meta as class attributes by design.
+"web/**" = ["TID251", "RUF012"]
 "manage.py" = ["TID251"]
 "tests/web/**" = ["TID251"]
 "**/migrations/**" = ["E501", "RUF012"]
