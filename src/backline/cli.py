@@ -386,6 +386,28 @@ def annotate(
         typer.echo(line)
 
 
+@app.command("build-dataset")
+def build_dataset_command(
+    config: ConfigOption = None,
+    name: Annotated[
+        str | None, typer.Option(help="Dataset folder name. Defaults to the profile name.")
+    ] = None,
+) -> None:
+    """Tokenise the imported, annotated library into train/val/test shards."""
+    from backline.dataset.build import build_dataset, dataset_dir
+    from backline.ingest.pipeline import LibraryPaths
+
+    cfg = _load(config)
+    paths = PathSettings()
+    library = LibraryPaths.from_settings(paths)
+    if not library.catalog.is_file():
+        typer.echo("no catalog yet: run `backline ingest` first", err=True)
+        raise typer.Exit(code=1)
+    report = build_dataset(cfg, library, dataset_dir(paths.artifacts_dir, name or cfg.name))
+    for line in report.lines():
+        typer.echo(line)
+
+
 @app.command("eval-theory")
 def eval_theory(
     config: ConfigOption = None,
