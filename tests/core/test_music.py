@@ -69,6 +69,35 @@ def test_chord_symbols() -> None:
     assert chord_symbol(10, ChordQuality.MAJOR, flats=True) == "Bb"
 
 
+def test_harmonic_functions() -> None:
+    from backline.music import HarmonicFunction, function_label, harmonic_function
+
+    assert harmonic_function(0) is HarmonicFunction.TONIC
+    assert harmonic_function(9) is HarmonicFunction.TONIC
+    assert harmonic_function(5) is HarmonicFunction.SUBDOMINANT
+    assert harmonic_function(7) is HarmonicFunction.DOMINANT
+    assert harmonic_function(10) is HarmonicFunction.MODAL
+    assert harmonic_function(1) is HarmonicFunction.CHROMATIC
+    assert [function_label(d) for d in (0, 5, 7, 10, 8, 3)] == [
+        "T",
+        "S",
+        "D",
+        "bVII",
+        "bVI",
+        "bIII",
+    ]
+
+
+def test_flat_spelling_follows_the_key() -> None:
+    from backline.music import prefers_flats
+
+    assert prefers_flats(5, Mode.MAJOR)  # F major
+    assert prefers_flats(2, Mode.MINOR)  # D minor ~ F major
+    assert prefers_flats(0, Mode.MIXOLYDIAN)  # C mixolydian ~ F major
+    assert not prefers_flats(4, Mode.MINOR)  # E minor ~ G major
+    assert not prefers_flats(9, Mode.DORIAN)  # A dorian ~ G major
+
+
 def test_mode_scales() -> None:
     assert 10 in Mode.MIXOLYDIAN.scale
     assert 11 not in Mode.MIXOLYDIAN.scale

@@ -168,6 +168,52 @@ def chord_symbol(root_pc: int, quality: ChordQuality, *, flats: bool = False) ->
     return pitch_class_name(root_pc, flats=flats) + _CHORD_SUFFIX[quality]
 
 
+class HarmonicFunction(StrEnum):
+    """Function of a chord in its key.
+
+    Rock harmony leans on modal degrees (bVII, bVI, bIII) that are neither tonic,
+    subdominant nor dominant in the classical sense, so they get their own label.
+    """
+
+    TONIC = "T"
+    SUBDOMINANT = "S"
+    DOMINANT = "D"
+    MODAL = "M"
+    CHROMATIC = "X"
+
+
+def harmonic_function(degree: int) -> HarmonicFunction:
+    """Function of a chord whose root lies ``degree`` semitones above the tonic."""
+    degree %= 12
+    if degree in (0, 4, 9):
+        return HarmonicFunction.TONIC
+    if degree in (2, 5):
+        return HarmonicFunction.SUBDOMINANT
+    if degree in (7, 11):
+        return HarmonicFunction.DOMINANT
+    if degree in (3, 8, 10):
+        return HarmonicFunction.MODAL
+    return HarmonicFunction.CHROMATIC
+
+
+def function_label(degree: int) -> str:
+    """Short label for UIs: ``T``/``S``/``D``, the degree itself for modal and chromatic ones."""
+    function = harmonic_function(degree)
+    if function in (HarmonicFunction.MODAL, HarmonicFunction.CHROMATIC):
+        return degree_name(degree)
+    return function.value
+
+
+FLAT_TONICS: Final = frozenset({5, 10, 3, 8, 1, 6})
+"""Major-key tonics (F, Bb, Eb, Ab, Db, Gb) whose chords read better with flats."""
+
+
+def prefers_flats(tonic: int, mode: Mode) -> bool:
+    """Whether chord names in this key are conventionally spelled with flats."""
+    offset = {Mode.MAJOR: 0, Mode.MINOR: 3, Mode.MIXOLYDIAN: 5, Mode.DORIAN: 10}[mode]
+    return (tonic + offset) % 12 in FLAT_TONICS
+
+
 class BassRole(StrEnum):
     """Harmonic role of a bass note relative to the chord it sounds against."""
 
