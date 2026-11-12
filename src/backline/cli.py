@@ -340,5 +340,65 @@ def catalog(
         typer.echo(f"  {song.status:<11} {name[:50]:<50} {detail}")
 
 
+@app.command()
+def annotate(
+    file: Annotated[
+        Path | None,
+        typer.Option(
+            "--file", "-f", exists=True, dir_okay=False, help="Analyse one tab or MIDI file."
+        ),
+    ] = None,
+    bars: Annotated[str | None, typer.Option(help="Bars to print with --file, e.g. 1:16.")] = None,
+    config: ConfigOption = None,
+    force: Annotated[bool, typer.Option(help="Re-annotate songs that did not change.")] = False,
+) -> None:
+    """Harmonic analysis: keys, chords per beat, functions and bass note roles.
+
+    Without --file, annotates the whole imported library and prints corpus statistics.
+    """
+    from backline.ingest.pipeline import LibraryPaths
+
+    cfg = _load(config)
+    if file is None:
+        from backline.theory.pipeline import annotate_library
+
+        library = LibraryPaths.from_settings(PathSettings())
+        if not library.catalog.is_file():
+            typer.echo("no catalog yet: run `backline ingest` first", err=True)
+            raise typer.Exit(code=1)
+        for line in annotate_library(library, force=force).lines():
+            typer.echo(line)
+        return
+
+    from backline.formats.common import ScoreReadError
+    from backline.formats.reader import read_score
+    from backline.ingest.roles import assign_roles
+    from backline.theory.annotate import annotate_score
+    from backline.theory.table import annotation_table
+
+    try:
+        score = assign_roles(read_score(file), cfg.ingest.name_hints)
+    except ScoreReadError as exc:
+        typer.echo(f"error: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+    selected = _parse_bars(bars, score.n_bars) if bars else None
+    for line in annotation_table(score, annotate_score(score), selected):
+        typer.echo(line)
+
+
+@app.command("eval-theory")
+def eval_theory(
+    config: ConfigOption = None,
+    n: Annotated[int, typer.Option("--n", min=1, help="Synthetic songs to analyse.")] = 100,
+    seed: Annotated[int, typer.Option(help="Seed of the synthetic corpus.")] = 23,
+) -> None:
+    """Measure the harmonic analysis against synthetic songs with known harmony."""
+    from backline.synth import generate_corpus
+    from backline.theory.evaluate import evaluate
+
+    for line in evaluate(generate_corpus(_load(config), n_songs=n, seed=seed)).lines():
+        typer.echo(line)
+
+
 if __name__ == "__main__":  # pragma: no cover
     app()

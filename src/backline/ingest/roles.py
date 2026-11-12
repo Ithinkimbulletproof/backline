@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import statistics
 from collections import defaultdict
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 from backline.config import NameHints
 from backline.music import pitch_name
@@ -168,6 +168,20 @@ def profile_guitar(
         lead_like=lead_like,
         rhythm_score=round(rhythm_score, 3),
     )
+
+
+def assign_roles(score: Score, hints: NameHints) -> Score:
+    """Copy of ``score`` with voted roles and guitars ordered rhythm-first (nothing dropped).
+
+    Used to analyse a single file, e.g. a riff with no bass or drums.
+    """
+    roles = [classify_track(track, hints).role for track in score.tracks]
+    tracks = [replace(track, role=role) for track, role in zip(score.tracks, roles, strict=True)]
+    guitars = [i for i, role in enumerate(roles) if role is TrackRole.GUITAR]
+    relabelled = replace(score, tracks=tracks)
+    ranked = [p.index for p in rank_guitars(relabelled, guitars, hints)]
+    others = [i for i in range(len(tracks)) if i not in guitars]
+    return replace(relabelled, tracks=[tracks[i] for i in [*ranked, *others]])
 
 
 def rank_guitars(

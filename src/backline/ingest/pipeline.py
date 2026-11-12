@@ -56,6 +56,8 @@ class LibraryPaths:
     catalog: Path
     scores: Path
     reports: Path
+    annotations: Path | None = None
+    """Defaults to an ``annotations`` folder next to ``scores``."""
 
     @classmethod
     def from_settings(cls, paths: PathSettings) -> LibraryPaths:
@@ -63,10 +65,15 @@ class LibraryPaths:
             catalog=paths.data_dir / "catalog.sqlite",
             scores=paths.data_dir / "scores",
             reports=paths.artifacts_dir / "reports",
+            annotations=paths.data_dir / "annotations",
         )
 
     def score_path(self, song_id: str) -> Path:
         return self.scores / f"{song_id}.json.gz"
+
+    def annotation_path(self, song_id: str) -> Path:
+        folder = self.annotations or self.scores.parent / "annotations"
+        return folder / f"{song_id}.json"
 
 
 @dataclass(slots=True)
@@ -371,6 +378,7 @@ def run_ingest(
         removed = [song_id for song_id in previous if song_id not in records]
         for song_id in removed:
             library.score_path(song_id).unlink(missing_ok=True)
+            library.annotation_path(song_id).unlink(missing_ok=True)
 
         _deduplicate_and_split(records, config)
         with catalog.transaction():
