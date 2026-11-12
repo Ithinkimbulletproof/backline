@@ -53,6 +53,7 @@ class PathSettings(BaseSettings):
 
     config: Path = Path("configs/base.yaml")
     data_dir: Path = Path("data")
+    tabs_dir: Path = Path("data/tabs")
     artifacts_dir: Path = Path("artifacts")
     checkpoints_dir: Path = Path("checkpoints")
     adapters_dir: Path = Path("adapters")
@@ -236,6 +237,47 @@ class DrumsConfig(_Frozen):
         return drum_map
 
 
+# -------------------------------------------------------------------------- ingest
+
+
+class NameHints(_Frozen):
+    """Lower-case fragments of track names that hint at a role (any language)."""
+
+    guitar: tuple[str, ...] = ("guitar", "gtr", "гитар")
+    bass: tuple[str, ...] = ("bass", "бас")
+    drums: tuple[str, ...] = ("drum", "kit", "perc", "барабан", "ударн")
+    rhythm: tuple[str, ...] = ("rhythm", "rhy", "ритм")
+    lead: tuple[str, ...] = ("lead", "solo", "соло", "melody", "мелод")
+
+
+class IngestConfig(_Frozen):
+    """Import of a tab library: filtering, metadata, deduplication and the split."""
+
+    min_notes_guitar: int = Field(default=16, ge=1)
+    min_notes_bass: int = Field(default=16, ge=1)
+    min_notes_drums: int = Field(default=32, ge=1)
+    filename_patterns: tuple[str, ...] = ("{artist} - {title}",)
+    """Patterns tried on the file name when the tab has no artist/title fields."""
+    folder_is_artist: bool = True
+    """Use the parent folder as the artist when nothing else names one."""
+    val_fraction: float = Field(default=0.1, ge=0, lt=1)
+    test_fraction: float = Field(default=0.0, ge=0, lt=1)
+    keep_duplicates: bool = False
+    """Keep every version of a song (all in the same split) instead of one canonical."""
+    workers: int = Field(default=0, ge=0)
+    """Parallel reader processes; 0 picks one per CPU core (at most 8)."""
+    name_hints: NameHints = NameHints()
+
+    @model_validator(mode="after")
+    def _check(self) -> Self:
+        if self.val_fraction + self.test_fraction >= 1:
+            raise ValueError("val_fraction + test_fraction must be below 1")
+        for pattern in self.filename_patterns:
+            if "{title}" not in pattern:
+                raise ValueError(f"filename pattern {pattern!r} must contain {{title}}")
+        return self
+
+
 # --------------------------------------------------------------------------- synth
 
 
@@ -298,6 +340,7 @@ class BacklineConfig(_Frozen):
     instruments: InstrumentsConfig
     velocity: VelocityConfig
     drums: DrumsConfig
+    ingest: IngestConfig = IngestConfig()
     synth: SynthConfig = SynthConfig()
     model: ModelConfig
 

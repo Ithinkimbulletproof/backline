@@ -91,6 +91,28 @@ drums:
   # Warn in the import report when dropped percussion exceeds this share of drum notes.
   other_percussion_warn_ratio: 0.02
 
+ingest:
+  # A song is kept only with a guitar, a bass and drums that each have at least this many notes.
+  min_notes_guitar: 16
+  min_notes_bass: 16
+  min_notes_drums: 32
+  # Tried on the file name when the tab has no artist/title fields.
+  filename_patterns: ["{artist} - {title}"]
+  folder_is_artist: true
+  # Split by song: every version of a song lands in the same split.
+  val_fraction: 0.1
+  test_fraction: 0.0
+  # false: keep one canonical version per song; true: keep all versions (same split).
+  keep_duplicates: false
+  workers: 0
+  # Track-name fragments that hint at a role; add words in your language.
+  name_hints:
+    guitar: [guitar, gtr, гитар]
+    bass: [bass, бас]
+    drums: [drum, kit, perc, барабан, ударн]
+    rhythm: [rhythm, rhy, ритм]
+    lead: [lead, solo, соло, melody, мелод]
+
 synth:
   n_songs: 200
   n_artists: 40
