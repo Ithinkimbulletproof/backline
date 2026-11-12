@@ -111,30 +111,157 @@ def synth(
     ] = None,
     n: Annotated[int | None, typer.Option("--n", min=1, help="Number of songs.")] = None,
     seed: Annotated[int | None, typer.Option(help="Seed. Defaults to the profile seed.")] = None,
-    formats: Annotated[str, typer.Option(help="Comma-separated: gp5, mid.")] = "gp5,mid",
+    formats: Annotated[
+        str,
+        typer.Option(help="Comma-separated: gp5, gp (minimal GP7 container), mid."),
+    ] = "gp5,mid",
 ) -> None:
     """Generate a synthetic corpus with ground-truth harmony (for tests and demos)."""
+    from backline.formats.gpif_writer import write_gp
     from backline.formats.guitarpro import write_gp5
     from backline.formats.midi import write_midi
     from backline.synth import generate_corpus
 
-    wanted = {f.strip().lower() for f in formats.split(",") if f.strip()}
-    unknown = wanted - {"gp5", "mid"}
+    writers = {"gp5": write_gp5, "gp": write_gp, "mid": write_midi}
+    wanted = [f.strip().lower() for f in formats.split(",") if f.strip()]
+    unknown = sorted(set(wanted) - set(writers))
     if unknown:
-        raise typer.BadParameter(f"unknown formats: {', '.join(sorted(unknown))}")
+        raise typer.BadParameter(f"unknown formats: {', '.join(unknown)}")
     cfg = _load(config)
     target = out or PathSettings().data_dir / "synth"
     target.mkdir(parents=True, exist_ok=True)
     songs = generate_corpus(cfg, n_songs=n, seed=seed)
     for index, song in enumerate(songs):
         stem = _UNSAFE.sub("", f"{index:04d} {song.score.artist} - {song.score.title}")
-        if "gp5" in wanted:
-            write_gp5(song.score, target / f"{stem}.gp5")
-        if "mid" in wanted:
-            write_midi(song.score, target / f"{stem}.mid")
+        for suffix in wanted:
+            writers[suffix](song.score, target / f"{stem}.{suffix}")
         truth = json.dumps(song.truth_dict(), ensure_ascii=False, indent=1)
         (target / f"{stem}.truth.json").write_text(truth, encoding="utf-8")
     typer.echo(f"wrote {len(songs)} songs to {target}")
+
+
+def _track_row(
+    index: str,
+    name: str,
+    role: str,
+    instrument: str,
+    program: str,
+    tuning: str,
+    notes: str,
+    span: str,
+) -> str:
+    return (
+        f"  {index:>2}  {name[:22]:<22} {role:<7} {instrument[:15]:<15} {program:>4}  "
+        f"{tuning[:20]:<20} {notes:>6}  {span}"
+    )
+
+
+def _parse_bars(spec: str | None, n_bars: int) -> range:
+    """Parse a 1-based inclusive bar range such as ``3``, ``3:6`` or ``3-6``."""
+    if not spec:
+        return range(0, min(n_bars, 2))
+    first, _, last = spec.replace("-", ":").partition(":")
+    try:
+        lo = int(first)
+        hi = int(last) if last else lo
+    except ValueError as exc:
+        raise typer.BadParameter(f"invalid bar range: {spec!r}") from exc
+    if not 1 <= lo <= hi:
+        raise typer.BadParameter(f"invalid bar range: {spec!r}")
+    return range(lo - 1, min(hi, n_bars))
+
+
+@app.command()
+def inspect(
+    path: Annotated[Path, typer.Argument(exists=True, dir_okay=False, help="Tab or MIDI file.")],
+    track: Annotated[
+        int | None, typer.Option("--track", "-t", help="Also list the notes of this track.")
+    ] = None,
+    bars: Annotated[
+        str | None, typer.Option(help="Bars to list with --track, 1-based: 5 or 5:8.")
+    ] = None,
+    no_feel: Annotated[
+        bool, typer.Option("--no-feel", help="Keep notation timing; do not apply triplet feel.")
+    ] = False,
+) -> None:
+    """Show what Backline reads from a file: meters, tempos, tracks and, optionally, notes."""
+    from backline.drums import GM_PERCUSSION_NAMES
+    from backline.formats.common import ReadStats, ScoreReadError
+    from backline.formats.reader import FORMAT_NAMES, read_score
+    from backline.formats.tablature import duration_label
+    from backline.music import pitch_name
+
+    stats = ReadStats()
+    try:
+        score = read_score(path, stats=stats, apply_triplet_feel=not no_feel)
+    except ScoreReadError as exc:
+        typer.echo(f"error: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+
+    starts = score.bar_starts()
+    _row("file", str(path))
+    _row("format", FORMAT_NAMES.get(path.suffix.lower(), path.suffix))
+    _row("title", score.title or "-")
+    _row("artist", score.artist or "-")
+    _row("bars", str(score.n_bars))
+    _row("meter", ", ".join(f"{ts} @bar {ts.bar + 1}" for ts in score.time_signatures))
+    _row(
+        "tempo",
+        ", ".join(
+            f"{t.bpm:g} @bar {score.bar_of(min(t.tick, starts[-1] - 1)) + 1}" for t in score.tempos
+        ),
+    )
+    typer.echo("tracks")
+    columns = ("#", "name", "role", "instrument", "prog", "tuning", "notes", "range")
+    typer.echo(_track_row(*columns))
+    for index, item in enumerate(score.tracks):
+        tuning = " ".join(pitch_name(p) for p in item.tuning) if item.tuning else "-"
+        pitches = [n.pitch for n in item.notes]
+        if not pitches:
+            span = "-"
+        elif item.is_percussion:
+            span = f"{len(set(pitches))} drum notes"
+        else:
+            span = f"{pitch_name(min(pitches))}-{pitch_name(max(pitches))}"
+        typer.echo(
+            _track_row(
+                str(index),
+                item.name,
+                item.role.value,
+                item.instrument or "-",
+                str(item.program),
+                tuning,
+                str(len(item.notes)),
+                span,
+            )
+        )
+    if stats:
+        _row("skipped", ", ".join(f"{key}={value}" for key, value in sorted(stats.items())))
+
+    if track is None:
+        return
+    if not 0 <= track < len(score.tracks):
+        raise typer.BadParameter(f"track must be within 0..{len(score.tracks) - 1}")
+    chosen = score.tracks[track]
+    selected = _parse_bars(bars, score.n_bars)
+    typer.echo(f"notes of track {track} ({chosen.name}), bars {selected.start + 1}-{selected.stop}")
+    for note in chosen.sorted_notes():
+        bar = score.bar_of(note.start)
+        if bar not in selected:
+            continue
+        beat_ticks = score.time_signature_at(bar).beat_ticks(score.tpq)
+        beat, tick = divmod(note.start - starts[bar], beat_ticks)
+        if chosen.is_percussion:
+            name = chosen.percussion_names.get(note.pitch) or GM_PERCUSSION_NAMES.get(
+                note.pitch, f"drum {note.pitch}"
+            )
+        else:
+            name = pitch_name(note.pitch)
+        flags = " ".join((f.name or "").lower() for f in type(note.flags) if f and f in note.flags)
+        typer.echo(
+            f"  {bar + 1:>4}.{beat + 1}.{tick:03d}  {name:<18} {duration_label(note.duration):<10}"
+            f" vel {note.velocity:<3} {flags}".rstrip()
+        )
 
 
 if __name__ == "__main__":  # pragma: no cover

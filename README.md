@@ -19,6 +19,7 @@ uv sync --extra cuda --extra web     # or --extra cpu on a machine without a GPU
 cp .env.example .env                 # paths to your data and weights
 uv run backline doctor               # checks PyTorch, CUDA and paths
 uv run backline synth --n 20         # synthetic songs with known harmony
+uv run backline inspect song.gp -t 1 # what Backline reads from a tab (.gp, .gp3-.gp5, .mid)
 uv run pytest
 uv run python manage.py runserver
 ```

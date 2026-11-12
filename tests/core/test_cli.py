@@ -15,7 +15,7 @@ runner = CliRunner()
 def test_help_lists_commands() -> None:
     result = runner.invoke(app, ["--help"])
     assert result.exit_code == 0
-    for command in ("doctor", "config", "synth"):
+    for command in ("doctor", "config", "synth", "inspect"):
         assert command in result.output
 
 
@@ -48,6 +48,42 @@ def test_synth_writes_tabs_midi_and_truth(tmp_path: Path) -> None:
     assert len(truths) == 2
     truth = json.loads(truths[0].read_text(encoding="utf-8"))
     assert {"chords", "sections", "bass_notes"} <= truth.keys()
+
+
+def test_synth_can_write_gp7_containers(tmp_path: Path) -> None:
+    result = runner.invoke(
+        app, ["synth", "-c", TINY, "--n", "1", "--out", str(tmp_path), "--formats", "gp"]
+    )
+    assert result.exit_code == 0, result.output
+    assert len(list(tmp_path.glob("*.gp"))) == 1
+    assert not list(tmp_path.glob("*.gp5"))
+
+
+def test_inspect_shows_tracks_and_notes(tmp_path: Path) -> None:
+    runner.invoke(app, ["synth", "-c", TINY, "--n", "1", "--out", str(tmp_path), "--formats", "gp"])
+    (path,) = tmp_path.glob("*.gp")
+    result = runner.invoke(app, ["inspect", str(path), "--track", "2", "--bars", "1"])
+    assert result.exit_code == 0, result.output
+    assert "Guitar Pro 7+" in result.output
+    assert "drumKit" in result.output
+    assert "notes of track 2" in result.output
+    assert "Kick" in result.output or "Crash" in result.output
+
+
+def test_inspect_reports_unreadable_files(tmp_path: Path) -> None:
+    path = tmp_path / "broken.gp"
+    path.write_bytes(b"nope")
+    result = runner.invoke(app, ["inspect", str(path)])
+    assert result.exit_code == 1
+
+
+def test_inspect_rejects_bad_track(tmp_path: Path) -> None:
+    runner.invoke(
+        app, ["synth", "-c", TINY, "--n", "1", "--out", str(tmp_path), "--formats", "mid"]
+    )
+    (path,) = tmp_path.glob("*.mid")
+    result = runner.invoke(app, ["inspect", str(path), "--track", "9"])
+    assert result.exit_code != 0
 
 
 def test_synth_rejects_unknown_formats(tmp_path: Path) -> None:
