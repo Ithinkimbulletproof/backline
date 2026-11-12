@@ -408,6 +408,72 @@ def build_dataset_command(
         typer.echo(line)
 
 
+@app.command("build-originality-index")
+def build_originality_index_command(config: ConfigOption = None) -> None:
+    """Index the imported library for copy detection and calibrate the thresholds."""
+    from backline.ingest.pipeline import LibraryPaths
+    from backline.originality.build import build_originality_index
+
+    cfg = _load(config)
+    paths = PathSettings()
+    library = LibraryPaths.from_settings(paths)
+    if not library.catalog.is_file():
+        typer.echo("no catalog yet: run `backline ingest` first", err=True)
+        raise typer.Exit(code=1)
+    target = paths.artifacts_dir / "originality" / cfg.name
+    index = build_originality_index(cfg, library, target)
+    _row("index", f"{target} ({len(index.songs)} songs, {index.n_groups} groups)")
+    for part, limits in index.meta["thresholds"].items():
+        _row(
+            part, f"yellow >= {limits['yellow']:.0%}, red >= {limits['red']:.0%} rare-pattern share"
+        )
+
+
+@app.command("check-originality")
+def check_originality(
+    file: Annotated[Path, typer.Argument(exists=True, dir_okay=False, help="Tab or MIDI file.")],
+    config: ConfigOption = None,
+    reference: Annotated[
+        list[str] | None, typer.Option("--ref", help="Song id of a reference (repeatable).")
+    ] = None,
+) -> None:
+    """Check the bass and drums of a file against the corpus (a heuristic, not a legal verdict)."""
+    from backline.formats.common import ScoreReadError
+    from backline.formats.reader import read_score
+    from backline.ingest.roles import assign_roles
+    from backline.originality.check import OriginalityChecker
+    from backline.originality.index import OriginalityIndex
+
+    cfg = _load(config)
+    folder = PathSettings().artifacts_dir / "originality" / cfg.name
+    if not (folder / "index.npz").is_file():
+        typer.echo("no originality index yet: run `backline build-originality-index`", err=True)
+        raise typer.Exit(code=1)
+    try:
+        score = assign_roles(read_score(file), cfg.ingest.name_hints)
+    except ScoreReadError as exc:
+        typer.echo(f"error: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+    report = OriginalityChecker(OriginalityIndex.load(folder), cfg).check(
+        score, references=reference or []
+    )
+    _row("verdict", f"{report.verdict} (score {report.score}/100)")
+    for part in report.parts:
+        sim = part.corpus
+        _row(
+            part.part,
+            f"{part.verdict}: longest {sim.longest_bars:.1f} bars, rare share {sim.rare_share:.0%}",
+        )
+        for source in sim.sources[:3]:
+            typer.echo(
+                f"{'':13}like {source.artist} - {source.title}, bars {source.source_bars[0]}-"
+                f"{source.source_bars[1]} ({source.bars:.1f} bars)"
+            )
+        for reason in part.reasons:
+            typer.echo(f"{'':13}{reason}")
+    typer.echo("note: a heuristic estimate of copying, not a legal guarantee")
+
+
 @app.command("eval-theory")
 def eval_theory(
     config: ConfigOption = None,
