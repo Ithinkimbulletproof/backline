@@ -1,0 +1,11 @@
+# SPDX-FileCopyrightText: 2026 Ithinkimbulletproof
+# SPDX-License-Identifier: AGPL-3.0-only
+from django.urls import path
+
+from web.studio import views
+
+app_name = "studio"
+
+urlpatterns = [
+    path("", views.index, name="index"),
+]
