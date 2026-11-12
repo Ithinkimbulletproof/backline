@@ -14,7 +14,8 @@ from pathlib import Path
 
 import mido
 
-from backline.score import TPQ, Note, Score, Tempo, TimeSignature, Track, TrackRole
+from backline.formats.common import ScoreReadError, guess_role
+from backline.score import TPQ, Note, Score, Tempo, TimeSignature, Track
 
 PERCUSSION_CHANNEL = 9
 
@@ -99,7 +100,11 @@ class _OpenNote:
 
 def read_midi(path: Path) -> Score:
     """Read a MIDI file into a score, rescaled to :data:`~backline.score.TPQ`."""
-    return midi_to_score(mido.MidiFile(path), title=path.stem)
+    try:
+        midi = mido.MidiFile(path)
+    except (OSError, EOFError, ValueError, KeyError, IndexError) as exc:
+        raise ScoreReadError(f"cannot parse {path.name}: {exc}") from exc
+    return midi_to_score(midi, title=path.stem)
 
 
 def midi_to_score(midi: mido.MidiFile, *, title: str = "") -> Score:
@@ -166,7 +171,7 @@ def midi_to_score(midi: mido.MidiFile, *, title: str = "") -> Score:
         tracks.append(
             Track(
                 name=names.get(index, f"Track {index}"),
-                role=_guess_role(program, percussion),
+                role=guess_role(program, percussion),
                 notes=sorted(group),
                 program=program,
                 is_percussion=percussion,
@@ -203,13 +208,3 @@ def _meters_to_bars(
     length = current.bar_ticks(TPQ)
     n_bars = bar + max(1, -(-(end - bar_start) // length))
     return sorted(deduped.values(), key=lambda ts: ts.bar), n_bars
-
-
-def _guess_role(program: int, percussion: bool) -> TrackRole:
-    if percussion:
-        return TrackRole.DRUMS
-    if 32 <= program <= 39:
-        return TrackRole.BASS
-    if 24 <= program <= 31:
-        return TrackRole.GUITAR
-    return TrackRole.OTHER
