@@ -27,8 +27,8 @@ from backline.synth.parts import (
     drum_bar,
     guitar_pitches,
     riff_hits,
-    swing_tick,
 )
+from backline.timing import swing_tick
 
 _FLAGS_FOR_DYNAMIC = {
     Dynamic.GHOST: NoteFlag.GHOST,

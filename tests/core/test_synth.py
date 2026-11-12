@@ -7,7 +7,7 @@ from backline.config import BacklineConfig
 from backline.music import BassRole, ChordQuality
 from backline.score import Track, TrackRole
 from backline.synth import SynthSong, generate_corpus
-from backline.synth.parts import swing_tick
+from backline.timing import swing_tick
 
 
 def _track(song: SynthSong, role: TrackRole) -> Track:

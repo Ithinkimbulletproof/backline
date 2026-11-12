@@ -3,7 +3,8 @@
 """Pattern generators for the guitar riff, the bass line and the drum groove.
 
 All patterns are written on a straight 8th/16th grid; a shuffle feel is applied to the
-whole song afterwards by :func:`swing_tick`. Drum grooves for a shuffle are written on
+whole song afterwards by :func:`backline.timing.swing_tick`. Drum grooves for a shuffle
+are written on
 the triplet grid directly.
 """
 
@@ -453,14 +454,3 @@ def drum_bar(
         DrumHit(step * groove.step_ticks, cls, dynamic, groove.step_ticks)
         for (step, cls), dynamic in sorted(cells.items())
     ]
-
-
-# ------------------------------------------------------------------------- swing
-
-
-def swing_tick(tick: int) -> int:
-    """Map a straight-8th position onto the triplet shuffle grid within its beat."""
-    beat, pos = divmod(tick, Q)
-    # First half of the beat stretches to 2/3 of it, the second half shrinks to 1/3.
-    shifted = pos * 4 // 3 if pos <= E else 2 * Q // 3 + (pos - E) * 2 // 3
-    return beat * Q + shifted
