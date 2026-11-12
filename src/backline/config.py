@@ -256,6 +256,8 @@ class IngestConfig(_Frozen):
     min_notes_guitar: int = Field(default=16, ge=1)
     min_notes_bass: int = Field(default=16, ge=1)
     min_notes_drums: int = Field(default=32, ge=1)
+    min_coverage: float = Field(default=0.6, ge=0, le=1)
+    """Bass and drums must play in at least this share of the bars where a guitar plays."""
     filename_patterns: tuple[str, ...] = ("{artist} - {title}",)
     """Patterns tried on the file name when the tab has no artist/title fields."""
     folder_is_artist: bool = True

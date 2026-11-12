@@ -96,6 +96,9 @@ ingest:
   min_notes_guitar: 16
   min_notes_bass: 16
   min_notes_drums: 32
+  # ...and the bass and drums must play in at least this share of the guitar's bars
+  # (tabs often transcribe them only for the intro).
+  min_coverage: 0.6
   # Tried on the file name when the tab has no artist/title fields.
   filename_patterns: ["{artist} - {title}"]
   folder_is_artist: true

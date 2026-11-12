@@ -30,8 +30,8 @@ def test_import_tabs_fills_the_library(
     build_library(root, tiny_config)
     out = StringIO()
     call_command("import_tabs", str(root), "--workers", "1", stdout=out)
-    assert "web library: 17 new" in out.getvalue()
-    assert Song.objects.count() == 17
+    assert "web library: 18 new" in out.getvalue()
+    assert Song.objects.count() == 18
     assert Song.objects.filter(status="ok").count() == 10
     assert Track.objects.filter(role="bass", ambiguous=True).exists()
 

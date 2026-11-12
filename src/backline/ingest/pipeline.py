@@ -205,6 +205,16 @@ def _normalise(
         reasons.append("no drum track")
     if reasons:
         return None, reasons
+    bass_coverage = _coverage(score, [basses[0]], guitars)
+    drum_coverage = _coverage(score, drums, guitars)
+    record.read_stats["bass_coverage_pct"] = round(100 * bass_coverage)
+    record.read_stats["drum_coverage_pct"] = round(100 * drum_coverage)
+    if bass_coverage < ingest.min_coverage:
+        reasons.append("bass covers too few bars")
+    if drum_coverage < ingest.min_coverage:
+        reasons.append("drums cover too few bars")
+    if reasons:
+        return None, reasons
 
     ranked = [p.index for p in rank_guitars(score, guitars, ingest.name_hints)]
     if len(basses) > 1:
@@ -272,6 +282,20 @@ def _normalise(
         artist=record.artist,
     )
     return normalised, []
+
+
+def _bars_with_notes(score: Score, tracks: list[int]) -> set[int]:
+    end = score.end
+    return {score.bar_of(n.start) for i in tracks for n in score.tracks[i].notes if n.start < end}
+
+
+def _coverage(score: Score, tracks: list[int], guitars: list[int]) -> float:
+    """Share of the bars where a guitar plays that also have notes in ``tracks``.
+
+    Tabs often transcribe the bass or drums only for an intro; such songs teach little.
+    """
+    reference = _bars_with_notes(score, guitars) or set(range(score.n_bars))
+    return len(_bars_with_notes(score, tracks) & reference) / len(reference)
 
 
 def _drum_stats(score: Score, config: BacklineConfig) -> dict[str, Any]:
@@ -406,7 +430,7 @@ def _read_all(
     if count == 0:
         count = min(8, os.cpu_count() or 1)
     results: list[FileResult] = []
-    if count <= 1 or len(paths) < PARALLEL_THRESHOLD:
+    if count <= 1 or len(paths) < PARALLEL_THRESHOLD or not _spawn_safe():
         for done, path in enumerate(paths, start=1):
             results.append(process_file(path, root, config))
             if progress:
@@ -419,6 +443,17 @@ def _read_all(
             if progress:
                 progress(done, len(paths))
     return results
+
+
+def _spawn_safe() -> bool:
+    """Whether worker processes can be started.
+
+    Windows starts workers by re-importing the main module; code run from stdin or an
+    interactive prompt has none, and the pool would hang, so read in-process instead.
+    """
+    import __main__
+
+    return getattr(__main__, "__file__", None) is not None
 
 
 def _completeness(record: SongRecord) -> tuple[int, int, int, str]:

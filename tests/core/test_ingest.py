@@ -44,7 +44,7 @@ def test_statuses_and_reasons(library: Library, tiny_config: BacklineConfig) -> 
     report = _ingest(library, tiny_config)
     _, paths, store = library
     records = _records(store)
-    assert report.files == len(records) == 17
+    assert report.files == len(records) == 18
     assert records[paths["no_bass"]].status == "filtered"
     assert records[paths["no_bass"]].reason == "no bass track"
     assert records[paths["gpx"]].status == "unsupported"
@@ -53,11 +53,18 @@ def test_statuses_and_reasons(library: Library, tiny_config: BacklineConfig) -> 
     assert report.statuses == {
         "ok": 10,
         "duplicate": 4,
-        "filtered": 1,
+        "filtered": 2,
         "unsupported": 1,
         "error": 1,
     }
-    assert report.reasons == {"no bass track": 1, "unsupported": 1, "error": 1}
+    assert report.reasons == {
+        "no bass track": 1,
+        "bass covers too few bars": 1,
+        "unsupported": 1,
+        "error": 1,
+    }
+    assert records[paths["bass_intro"]].reason == "bass covers too few bars"
+    assert records[paths["a"]].read_stats["bass_coverage_pct"] >= 60
 
 
 def test_versions_of_a_song_are_grouped(library: Library, tiny_config: BacklineConfig) -> None:

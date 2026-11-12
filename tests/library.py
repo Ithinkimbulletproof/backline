@@ -74,6 +74,12 @@ def build_library(root: Path, config: BacklineConfig) -> dict[str, str]:
     no_bass.tracks = [t for t in no_bass.tracks if t.role is not TrackRole.BASS]
     put("no_bass", "Solo Act - Bassless.gp5", no_bass, write_gp5)
 
+    intro_only = _named(plain[4], artist="Half Done", title="Intro Bass")
+    bass_track = next(t for t in intro_only.tracks if t.role is TrackRole.BASS)
+    two_bars = intro_only.bar_starts()[2]
+    bass_track.notes = [n for n in bass_track.notes if n.start < two_bars]
+    put("bass_intro", "Half Done - Intro Bass.gp5", intro_only, write_gp5)
+
     cowbell = _named(plain[5], artist="Copper Bell", title="More Cowbell")
     drums = next(t for t in cowbell.tracks if t.is_percussion)
     drums.notes = sorted([*drums.notes, *(Note(i * 1920, 56, 240) for i in range(cowbell.n_bars))])
