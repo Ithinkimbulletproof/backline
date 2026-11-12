@@ -314,6 +314,44 @@ class TokenizerConfig(_Frozen):
         return self
 
 
+# --------------------------------------------------------------------- originality
+
+
+class OriginalityConfig(_Frozen):
+    """Copy detection against the corpus. A heuristic, not a legal guarantee."""
+
+    ngram: int = Field(default=8, ge=4, le=16)
+    """Bass events per n-gram for the rare-pattern share."""
+    seed: int = Field(default=5, ge=3, le=12)
+    """Exact bass events that start a candidate match."""
+    max_mismatches: int = Field(default=2, ge=0, le=4)
+    """Differing events tolerated in any n-gram window of a match."""
+    drum_seed_beats: int = Field(default=4, ge=2)
+    """Exact drum beats (coarse classes) that start a candidate match."""
+    drum_beat_similarity: float = Field(default=0.75, gt=0, le=1)
+    """Jaccard similarity of a beat's onsets for it to count as copied."""
+    common_seed_share: float = Field(default=0.05, gt=0, le=1)
+    """Seeds found in more than this share of song groups are common vocabulary: not searched."""
+    red_bars: float = Field(default=2.0, gt=0)
+    """A continuous copy at least this long (bars) from one song is red, whatever the score."""
+    yellow_bars: float = Field(default=1.0, gt=0)
+    yellow_percentile: float = Field(default=95.0, gt=0, lt=100)
+    red_percentile: float = Field(default=99.5, gt=0, lt=100)
+    """Percentiles of the between-songs similarity distribution that set the thresholds."""
+    calibration_songs: int = Field(default=300, ge=10)
+    max_regenerations: int = Field(default=5, ge=0)
+
+    @model_validator(mode="after")
+    def _check(self) -> Self:
+        if self.seed > self.ngram:
+            raise ValueError("originality seed must not be longer than the n-gram")
+        if self.yellow_percentile >= self.red_percentile:
+            raise ValueError("yellow percentile must be below the red one")
+        if self.yellow_bars > self.red_bars:
+            raise ValueError("yellow_bars must not exceed red_bars")
+        return self
+
+
 # --------------------------------------------------------------------------- synth
 
 
@@ -378,6 +416,7 @@ class BacklineConfig(_Frozen):
     drums: DrumsConfig
     ingest: IngestConfig = IngestConfig()
     tokenizer: TokenizerConfig = TokenizerConfig()
+    originality: OriginalityConfig = OriginalityConfig()
     synth: SynthConfig = SynthConfig()
     model: ModelConfig
 

@@ -131,6 +131,28 @@ tokenizer:
   # Transposition augmentation in semitones, kept inside instrument ranges.
   transpose: [-5, 5]
 
+originality:
+  # A heuristic estimate of copying, not a legal guarantee.
+  # Bass events per n-gram (rare-pattern share) and per exact seed (match start).
+  ngram: 8
+  seed: 5
+  # Differing events tolerated inside any n-gram window of a match.
+  max_mismatches: 2
+  # Drum matching: exact seed length in beats, and per-beat Jaccard similarity.
+  drum_seed_beats: 4
+  drum_beat_similarity: 0.75
+  # Seeds found in more song groups than this share are common vocabulary and ignored.
+  common_seed_share: 0.05
+  # A continuous copy this long (bars) from one song is red regardless of the score.
+  red_bars: 2.0
+  yellow_bars: 1.0
+  # Thresholds of the rare-pattern share: percentiles of the between-songs distribution.
+  yellow_percentile: 95
+  red_percentile: 99.5
+  calibration_songs: 300
+  # "Regenerate until green": maximum extra attempts.
+  max_regenerations: 5
+
 synth:
   n_songs: 200
   n_artists: 40
