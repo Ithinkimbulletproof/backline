@@ -1,0 +1,22 @@
+# Default output drum map: General MIDI percussion (channel 10).
+# One drum class -> one MIDI note. Copy this file to describe your own drum instrument;
+# see sd3_signature_part2.yaml for an example with substitutions and a rimshot note.
+
+name: gm
+description: General MIDI percussion
+classes:
+  kick:      {note: 36}   # Bass Drum 1
+  snare:     {note: 38}   # Acoustic Snare
+  rim:       {note: 37}   # Side Stick
+  hh_closed: {note: 42}   # Closed Hi-Hat
+  hh_pedal:  {note: 44}   # Pedal Hi-Hat
+  hh_open:   {note: 46}   # Open Hi-Hat
+  tom_floor: {note: 43}   # High Floor Tom
+  tom_mid:   {note: 47}   # Low-Mid Tom
+  tom_high:  {note: 50}   # High Tom
+  crash1:    {note: 49}   # Crash Cymbal 1
+  crash2:    {note: 57}   # Crash Cymbal 2
+  ride:      {note: 51}   # Ride Cymbal 1
+  ride_bell: {note: 53}   # Ride Bell
+  china:     {note: 52}   # Chinese Cymbal
+  splash:    {note: 55}   # Splash Cymbal

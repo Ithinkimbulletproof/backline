@@ -1,0 +1,35 @@
+# Example output drum map: one drum class -> one MIDI note.
+# Captured from Superior Drummer 3 (Settings -> MIDI In/E-Drums) for the
+# EZX Signature Part 2 kit. Copy this file and edit the notes to match your own preset.
+# Note names in the comments are as shown in SD3, which labels MIDI 60 as C3.
+# `substitute: true` marks a class the kit does not have: the class is played with
+# the given note (another class's sound) and the UI shows a warning.
+
+name: sd3_signature_part2
+description: Superior Drummer 3, EZX Signature Part 2 (default MIDI In map)
+classes:
+  kick:      {note: 36}                    # C1  Kick Hit
+  snare:     {note: 38}                    # D1  Snare Center
+  rim:       {note: 37}                    # C#1 Snare Sidestick
+  hh_closed: {note: 42}                    # F#1 Hi-Hat Closed Tip
+  hh_open:   {note: 46}                    # A#1 Hi-Hat Open Edge 2
+  hh_pedal:  {note: 44}                    # G#1 Hi-Hat Pedal Closed
+  tom_high:  {note: 48}                    # C2  Racktom 1 Center (NOT 50: that is Crash 1 Muted Hit here)
+  tom_mid:   {note: 45}                    # A1  Racktom 2 Center
+  tom_floor: {note: 43}                    # G1  Floortom Center
+  crash1:    {note: 49}                    # C#2 Crash 1 Crash
+  crash2:    {note: 57}                    # A2  Crash 2 Crash
+  ride:      {note: 51}                    # D#2 Ride Bow Tip
+  ride_bell: {note: 53}                    # F2  Ride Bell
+  china:     {note: 57, substitute: true}  # not in the kit -> Crash 2 Crash
+  splash:    {note: 49, substitute: true}  # not in the kit -> Crash 1 Crash
+options:
+  snare_max_velocity_to_rimshot:
+    enabled: true
+    note: 40                               # E1 Snare Rimshot
+
+# Reserved for future articulations (not read by the system yet):
+#   Hi-Hat Open Edge 0-5:         64, 123, 25, 26, 60, 124
+#   Hi-Hat Closed Edge:           65
+#   Ride Edge:                    59
+#   Crash 1 / Crash 2 Muted Hit:  50, 54

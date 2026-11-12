@@ -1,0 +1,15 @@
+# Tiny profile for CI and quick local checks: runs end to end on a CPU in seconds.
+extends: base.yaml
+
+name: tiny
+
+synth:
+  n_songs: 12
+  n_artists: 4
+
+model:
+  d_model: 64
+  n_layers: 2
+  n_heads: 4
+  context_length: 512
+  dropout: 0.0

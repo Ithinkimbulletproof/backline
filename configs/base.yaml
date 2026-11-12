@@ -1,0 +1,109 @@
+# Base profile. Copy it to configs/<name>.local.yaml (ignored by git) and point
+# BACKLINE_CONFIG at your copy, or write a small profile with `extends: base.yaml`.
+# Mappings merge with the parent profile, every other value replaces it.
+# Pitches accept MIDI numbers or scientific names (C4 = 60, bass low E = E1 = 28).
+
+name: base
+seed: 1337
+
+instruments:
+  guitar:
+    tuning: [E2, A2, D3, G3, B3, E4]
+    frets: 24
+    # Riff notes outside this range are dropped on import (e.g. keyswitch notes
+    # that sample libraries put far below or above the guitar range).
+    input_range: [C1, C7]
+
+  bass:
+    # Profile the generated parts are written for; tabs and the pitch mask follow it.
+    profile: bass4_standard
+    # The corpus may contain 4- and 5-string parts; segments outside this range are dropped.
+    train_range: [B0, G4]
+    profiles:
+      bass4_standard:   {tuning: [E1, A1, D2, G2], frets: 24}
+      bass4_drop_d:     {tuning: [D1, A1, D2, G2], frets: 24}
+      bass4_d_standard: {tuning: [D1, G1, C2, F2], frets: 24}
+      bass5_standard:   {tuning: [B0, E1, A1, D2, G2], frets: 24}
+
+velocity:
+  # A note falls into the loudest level whose `min` it reaches; `out` is written on export.
+  # Ghost, accent and heavy-accent marks from Guitar Pro override the raw velocity.
+  levels:
+    ghost:  {min: 1,   out: 40}
+    normal: {min: 50,  out: 90}
+    accent: {min: 100, out: 112}
+    max:    {min: 120, out: 127}
+
+drums:
+  classes:
+    - kick
+    - snare        # rimshots are snare at the `max` level
+    - rim          # side stick / cross-stick only
+    - hh_closed
+    - hh_pedal
+    - hh_open
+    - tom_floor
+    - tom_mid
+    - tom_high
+    - crash1
+    - crash2
+    - ride
+    - ride_bell
+    - china
+    - splash
+
+  # General MIDI percussion note -> class. Anything else (cowbell, tambourine, claps...)
+  # is dropped on import and counted in the import report. The first note listed for a
+  # class is its canonical note (used when writing synthetic tabs).
+  input_map:
+    36: kick
+    35: kick
+    37: rim
+    38: snare
+    40: snare
+    42: hh_closed
+    44: hh_pedal
+    46: hh_open
+    43: tom_floor
+    41: tom_floor
+    47: tom_mid
+    45: tom_mid
+    50: tom_high
+    48: tom_high
+    49: crash1
+    57: crash2
+    51: ride
+    59: ride
+    53: ride_bell
+    52: china
+    55: splash
+
+  # Coarser groups for the originality check.
+  coarse:
+    kick: [kick]
+    snare: [snare, rim]
+    hats: [hh_closed, hh_pedal, hh_open]
+    toms: [tom_floor, tom_mid, tom_high]
+    cymbals: [crash1, crash2, ride, ride_bell, china, splash]
+
+  # Output map used for export; see configs/drum_maps/ for examples.
+  output_map: drum_maps/gm.yaml
+  # Warn in the import report when dropped percussion exceeds this share of drum notes.
+  other_percussion_warn_ratio: 0.02
+
+synth:
+  n_songs: 200
+  n_artists: 40
+  sections_per_song: [3, 6]
+  time_signatures: {"4/4": 0.9, "3/4": 0.1}
+  tempo_range: [80, 180]
+  shuffle_probability: 0.1
+  full_chord_probability: 0.3
+  key_change_probability: 0.2
+
+model:
+  d_model: 640
+  n_layers: 12
+  n_heads: 10
+  context_length: 4096
+  dropout: 0.1
