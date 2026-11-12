@@ -100,6 +100,7 @@ synth:
   shuffle_probability: 0.1
   full_chord_probability: 0.3
   key_change_probability: 0.2
+  lead_guitar_probability: 0.3
 
 model:
   d_model: 640

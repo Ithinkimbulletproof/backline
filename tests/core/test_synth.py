@@ -11,8 +11,8 @@ from backline.timing import swing_tick
 
 
 def _track(song: SynthSong, role: TrackRole) -> Track:
-    (track,) = song.score.tracks_with_role(role)
-    return track
+    """First track of a role: the rhythm guitar when a lead guitar is present too."""
+    return song.score.tracks_with_role(role)[0]
 
 
 def test_corpus_is_reproducible(tiny_config: BacklineConfig) -> None:
@@ -38,8 +38,10 @@ def test_other_seed_gives_other_songs(tiny_config: BacklineConfig) -> None:
 
 def test_every_song_has_a_band(corpus: list[SynthSong]) -> None:
     for song in corpus:
-        roles = sorted(t.role for t in song.score.tracks)
-        assert roles == sorted([TrackRole.GUITAR, TrackRole.BASS, TrackRole.DRUMS])
+        roles = Counter(t.role for t in song.score.tracks)
+        assert roles[TrackRole.BASS] == roles[TrackRole.DRUMS] == 1
+        assert roles[TrackRole.GUITAR] in (1, 2)
+        assert set(roles) == {TrackRole.GUITAR, TrackRole.BASS, TrackRole.DRUMS}
         end = song.score.end
         for track in song.score.tracks:
             assert track.notes, track.name
@@ -134,6 +136,17 @@ def test_corpus_covers_the_vocabulary(
     assert any(len({sec.tonic for sec in s.sections}) > 1 for s in large_corpus)
     qualities = {c.quality for s in large_corpus for c in s.chords}
     assert {ChordQuality.POWER, ChordQuality.MAJOR, ChordQuality.MINOR} <= qualities
+    assert any(len(s.score.tracks_with_role(TrackRole.GUITAR)) == 2 for s in large_corpus)
+
+
+def test_lead_guitar_is_a_high_single_line(large_corpus: list[SynthSong]) -> None:
+    for song in large_corpus:
+        guitars = song.score.tracks_with_role(TrackRole.GUITAR)
+        if len(guitars) < 2:
+            continue
+        lead = guitars[1]
+        assert all(64 <= n.pitch <= 84 for n in lead.notes)
+        assert len({n.start for n in lead.notes}) == len(lead.notes)
 
 
 def test_three_four_songs_use_whole_bar_chords(large_corpus: list[SynthSong]) -> None:

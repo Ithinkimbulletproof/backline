@@ -251,6 +251,8 @@ class SynthConfig(_Frozen):
     full_chord_probability: float = Field(default=0.3, ge=0, le=1)
     """Share of sections where the guitar voices the third instead of power chords."""
     key_change_probability: float = Field(default=0.2, ge=0, le=1)
+    lead_guitar_probability: float = Field(default=0.3, ge=0, le=1)
+    """Share of songs with a second, lead guitar track."""
 
     @model_validator(mode="after")
     def _check(self) -> Self:

@@ -10,6 +10,7 @@ the triplet grid directly.
 
 from __future__ import annotations
 
+import random
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from enum import StrEnum
@@ -145,6 +146,34 @@ def guitar_pitches(shape: Shape, root_pc: int, quality: ChordQuality) -> list[in
     root = GUITAR_LOWEST_ROOT + (root_pc - GUITAR_LOWEST_ROOT) % 12
     intervals = _FULL_VOICINGS[quality] if shape is Shape.FULL else _SHAPE_INTERVALS[shape]
     return [root + i for i in intervals]
+
+
+_MINOR_PENTATONIC: Final = (0, 3, 5, 7, 10)
+_MAJOR_PENTATONIC: Final = (0, 2, 4, 7, 9)
+LEAD_RANGE: Final = (64, 84)
+
+
+def lead_notes(span: Span, rng: random.Random, previous: int | None) -> list[tuple[int, int, int]]:
+    """A pentatonic lead line over one span: (offset, duration, pitch), mostly single notes."""
+    minor = span.mode in (Mode.MINOR, Mode.DORIAN)
+    scale = _MINOR_PENTATONIC if minor else _MAJOR_PENTATONIC
+    pitches = [
+        p for p in range(LEAD_RANGE[0], LEAD_RANGE[1] + 1) if (p - span.tonic_pc) % 12 in scale
+    ]
+    index = (
+        min(range(len(pitches)), key=lambda i: abs(pitches[i] - previous))
+        if previous is not None
+        else rng.randrange(len(pitches))
+    )
+    notes = []
+    offset = 0
+    while offset < span.length:
+        size = rng.choice((E, E, Q)) if offset + Q <= span.length else E
+        if rng.random() < 0.8:
+            index = min(max(index + rng.choice((-2, -1, -1, 1, 1, 2)), 0), len(pitches) - 1)
+            notes.append((offset, size, pitches[index]))
+        offset += size
+    return notes
 
 
 # -------------------------------------------------------------------------- bass

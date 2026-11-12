@@ -26,6 +26,7 @@ from backline.synth.parts import (
     bass_hits,
     drum_bar,
     guitar_pitches,
+    lead_notes,
     riff_hits,
 )
 from backline.timing import swing_tick
@@ -252,6 +253,7 @@ def generate_song(
     bass: list[Note] = []
     roles: list[BassNoteTruth] = []
     chords: list[ChordTruth] = []
+    built_spans: list[tuple[int, Span]] = []
     for i, plan in enumerate(planned):
         design = designs[order[plan.section]]
         following = planned[i + 1] if i + 1 < len(planned) else planned[0]
@@ -265,6 +267,7 @@ def generate_song(
             mode=plan.mode,
             next_root_pc=following.root_pc,
         )
+        built_spans.append((plan.section, span))
         hits = riff_hits(design.riff, span, full=design.full)
         for hit in hits:
             for pitch in guitar_pitches(hit.shape, span.root_pc, span.quality):
@@ -309,10 +312,44 @@ def generate_song(
 
     drums = _drum_track(config, rng, sections, designs, order, bar_ticks)
 
+    lead: list[Note] = []
+    if rng.random() < synth.lead_guitar_probability:
+        lead_rng = random.Random(rng.getrandbits(64))
+        soloing = {
+            i for i, s in enumerate(sections) if s.name != "verse" or lead_rng.random() < 0.3
+        }
+        previous: int | None = None
+        for section_index, span in built_spans:
+            if section_index not in soloing:
+                continue
+            for offset, length, pitch in lead_notes(span, lead_rng, previous):
+                lead.append(
+                    Note(
+                        span.start + offset,
+                        pitch,
+                        length,
+                        config.velocity.velocity_of(Dynamic.NORMAL),
+                    )
+                )
+                previous = pitch
+
     if swing:
         guitar = [_swung(n) for n in guitar]
         bass = [_swung(n) for n in bass]
+        lead = [_swung(n) for n in lead]
         roles = [BassNoteTruth(swing_tick(r.start), r.pitch, r.role) for r in roles]
+
+    extra_tracks = []
+    if lead:
+        extra_tracks.append(
+            Track(
+                name=rng.choice(("Lead Guitar", "Solo", "Lead")),
+                role=TrackRole.GUITAR,
+                notes=sorted(lead),
+                program=30,
+                tuning=config.instruments.guitar.tuning,
+            )
+        )
 
     score = Score(
         n_bars=n_bars,
@@ -339,6 +376,7 @@ def generate_song(
                 notes=sorted(drums),
                 is_percussion=True,
             ),
+            *extra_tracks,
         ],
         title=title,
         artist=artist,
