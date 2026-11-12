@@ -474,6 +474,152 @@ def check_originality(
     typer.echo("note: a heuristic estimate of copying, not a legal guarantee")
 
 
+@app.command()
+def train(
+    config: ConfigOption = None,
+    dataset: Annotated[
+        str | None, typer.Option(help="Dataset folder name. Defaults to the profile name.")
+    ] = None,
+    device: Annotated[
+        str | None, typer.Option(help="cuda or cpu (default: cuda if available).")
+    ] = None,
+    fresh: Annotated[bool, typer.Option(help="Start over instead of resuming last.pt.")] = False,
+) -> None:
+    """Train the base model on a built dataset (resumes automatically)."""
+    from backline.dataset.build import dataset_dir
+    from backline.model.train import Trainer
+    from backline.originality.index import OriginalityIndex
+
+    cfg = _load(config)
+    paths = PathSettings()
+    data = dataset_dir(paths.artifacts_dir, dataset or cfg.name)
+    if not (data / "train.tokens").is_file():
+        typer.echo(f"no dataset at {data}: run `backline build-dataset` first", err=True)
+        raise typer.Exit(code=1)
+    index_dir = paths.artifacts_dir / "originality" / cfg.name
+    index = OriginalityIndex.load(index_dir) if (index_dir / "index.npz").is_file() else None
+    if index is None:
+        typer.echo("note: no originality index, memorization will not be measured", err=True)
+    trainer = Trainer(cfg, data, paths.checkpoints_dir / cfg.name, device=device, index=index)
+    _row("device", str(trainer.device))
+    _row("parameters", f"{trainer.model.parameter_count() / 1e6:.1f}M")
+
+    def progress(step: int, total: int, record: dict[str, float]) -> None:
+        if "val_loss" in record or step % 50 == 0:
+            shown = ", ".join(f"{k}={v:.4g}" for k, v in record.items() if k != "step")
+            typer.echo(f"step {step}/{total}: {shown}")
+
+    summary = trainer.train(resume=not fresh, progress=progress)
+    _row("best", f"step {summary.best_step} (metric {summary.best_metric:.4f})")
+    _row("checkpoints", str(paths.checkpoints_dir / cfg.name))
+
+
+def _plan_line(decoded_plan: list[object], bar: int) -> str:
+    from backline.music import chord_symbol, prefers_flats
+
+    names = []
+    for chord in decoded_plan:
+        if getattr(chord, "bar", -1) != bar:
+            continue
+        root, quality = chord.root, chord.quality  # type: ignore[attr-defined]
+        if root is None or quality is None:
+            names.append("N.C.")
+        else:
+            names.append(chord_symbol(root, quality, flats=prefers_flats(chord.tonic, chord.mode)))  # type: ignore[attr-defined]
+    return " ".join(names)
+
+
+@app.command()
+def generate(
+    riff: Annotated[
+        Path, typer.Argument(exists=True, dir_okay=False, help="Riff: MIDI or Guitar Pro.")
+    ],
+    config: ConfigOption = None,
+    checkpoint: Annotated[
+        Path | None, typer.Option(help="Model checkpoint (default: best.pt).")
+    ] = None,
+    bars: Annotated[str | None, typer.Option(help="Bars of the riff, e.g. 1:4.")] = None,
+    track: Annotated[int | None, typer.Option(help="Track index of the riff guitar.")] = None,
+    n: Annotated[int | None, typer.Option("--n", min=1, help="Number of variants.")] = None,
+    out: Annotated[Path | None, typer.Option(help="Folder for the MIDI files.")] = None,
+    until_green: Annotated[
+        bool, typer.Option(help="Regenerate variants until the check is green.")
+    ] = False,
+    seed: Annotated[int | None, typer.Option(help="Sampling seed.")] = None,
+    device: Annotated[str | None, typer.Option(help="cuda or cpu.")] = None,
+) -> None:
+    """Write bass and drums for a riff: a harmonic plan first, then the parts."""
+    from backline.formats.common import ScoreReadError
+    from backline.formats.reader import read_score
+    from backline.model.service import export_variant, generate_variants, prepare_riff
+    from backline.model.train import load_model
+    from backline.originality.check import OriginalityChecker
+    from backline.originality.index import OriginalityIndex
+    from backline.theory.table import key_name
+    from backline.tokenizer.vocab import Vocab
+
+    cfg = _load(config)
+    paths = PathSettings()
+    path = checkpoint or paths.checkpoints_dir / cfg.name / "best.pt"
+    if not path.is_file():
+        typer.echo(f"no model at {path}: run `backline train` first", err=True)
+        raise typer.Exit(code=1)
+    model, state = load_model(path, device=device)
+    vocab = Vocab.from_config(cfg)
+    if state["vocab"] != vocab.fingerprint():
+        typer.echo("the checkpoint was trained with a different vocabulary", err=True)
+        raise typer.Exit(code=1)
+    try:
+        score = read_score(riff)
+    except ScoreReadError as exc:
+        typer.echo(f"error: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+    prepared = prepare_riff(
+        score, cfg, bars=_parse_bars(bars, score.n_bars) if bars else None, track=track
+    )
+    index_dir = paths.artifacts_dir / "originality" / cfg.name
+    checker = (
+        OriginalityChecker(OriginalityIndex.load(index_dir), cfg)
+        if (index_dir / "index.npz").is_file()
+        else None
+    )
+    result = generate_variants(
+        model,
+        vocab,
+        cfg,
+        prepared,
+        variants=n,
+        checker=checker,
+        until_green=until_green,
+        seed=seed,
+        drum_map=cfg.drums.load_output_map(),
+    )
+    _row(
+        "riff",
+        f"{riff.name}, bars {prepared.bars.start + 1}-{prepared.bars.stop}, "
+        f"{key_name(prepared.key)}",
+    )
+    target = out or paths.media_dir / "generated" / riff.stem
+    for number, variant in enumerate(result.variants, start=1):
+        typer.echo(f"variant {number}")
+        for bar in range(prepared.n_bars):
+            typer.echo(f"  bar {bar + 1:>2}: {_plan_line(list(variant.decoded.plan), bar)}")
+        m = variant.metrics
+        _row(
+            "  metrics",
+            f"plan adherence {m.plan_adherence:.0%}, bass-kick {m.bass_kick_coupling:.0%}",
+        )
+        if variant.originality is not None:
+            report = variant.originality
+            _row(
+                "  originality",
+                f"{report.verdict} ({report.score}/100, attempts {variant.attempts})",
+            )
+        files = export_variant(variant, target, f"variant_{number}")
+        _row("  files", ", ".join(p.name for p in files))
+    _row("folder", str(target))
+
+
 @app.command("eval-theory")
 def eval_theory(
     config: ConfigOption = None,
