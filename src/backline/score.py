@@ -122,6 +122,10 @@ class Track:
     is_percussion: bool = False
     tuning: tuple[int, ...] | None = None
     """Open-string pitches from the lowest string up, for fretted instruments."""
+    instrument: str = ""
+    """Instrument hint from the source file, e.g. Guitar Pro's ``electricBass``."""
+    percussion_names: dict[int, str] = field(default_factory=dict)
+    """Names the source file gives to percussion notes, e.g. ``{46: "Hi-Hat.Open"}``."""
 
     def sorted_notes(self) -> list[Note]:
         """Notes ordered by start tick, then pitch."""
