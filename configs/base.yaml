@@ -113,6 +113,24 @@ ingest:
     rhythm: [rhythm, rhy, ритм]
     lead: [lead, solo, соло, melody, мелод]
 
+tokenizer:
+  # Segment lengths in bars, all cut from every song, with a hop of half a segment.
+  segment_bars: [4, 8]
+  stride_fraction: 0.5
+  # Longest bar in grid steps (24 per quarter note): 192 = 8/4.
+  max_positions: 192
+  # Upper edges of tempo buckets (bpm).
+  tempo_buckets: [60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 165, 180, 200]
+  # Write each bass note's harmonic role (chord / passing / ...) before its pitch.
+  bass_role_tokens: true
+  # Also cut segments conditioned on other non-lead guitars of the song.
+  extra_guitars: true
+  min_notes_guitar: 4
+  min_notes_bass: 4
+  min_notes_drums: 8
+  # Transposition augmentation in semitones, kept inside instrument ranges.
+  transpose: [-5, 5]
+
 synth:
   n_songs: 200
   n_artists: 40

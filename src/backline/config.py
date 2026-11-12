@@ -278,6 +278,42 @@ class IngestConfig(_Frozen):
         return self
 
 
+# ----------------------------------------------------------------------- tokenizer
+
+
+class TokenizerConfig(_Frozen):
+    """How songs become token sequences."""
+
+    segment_bars: tuple[int, ...] = Field(default=(4, 8), min_length=1)
+    """Segment lengths in bars; every length is cut from every song."""
+    stride_fraction: float = Field(default=0.5, gt=0, le=1)
+    """Hop between segments as a share of the segment length."""
+    max_positions: int = Field(default=192, ge=24)
+    """Longest bar in grid steps (24 per quarter): 192 = 8/4."""
+    tempo_buckets: tuple[int, ...] = (60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 165, 180, 200)
+    """Upper edges of tempo buckets in bpm; faster tempos fall into the last bucket."""
+    bass_role_tokens: bool = True
+    """Write each bass note's harmonic role before its pitch."""
+    extra_guitars: bool = True
+    """Also cut segments conditioned on other non-lead guitars."""
+    min_notes_guitar: int = Field(default=4, ge=1)
+    min_notes_bass: int = Field(default=4, ge=1)
+    min_notes_drums: int = Field(default=8, ge=1)
+    transpose: tuple[int, int] = (-5, 5)
+    """Semitone range for transposition augmentation (kept within instrument ranges)."""
+
+    @model_validator(mode="after")
+    def _check(self) -> Self:
+        low, high = self.transpose
+        if low > 0 or high < 0:
+            raise ValueError("transpose range must include 0")
+        if list(self.tempo_buckets) != sorted(set(self.tempo_buckets)):
+            raise ValueError("tempo buckets must strictly increase")
+        if any(bars < 1 for bars in self.segment_bars):
+            raise ValueError("segment lengths must be at least one bar")
+        return self
+
+
 # --------------------------------------------------------------------------- synth
 
 
@@ -341,6 +377,7 @@ class BacklineConfig(_Frozen):
     velocity: VelocityConfig
     drums: DrumsConfig
     ingest: IngestConfig = IngestConfig()
+    tokenizer: TokenizerConfig = TokenizerConfig()
     synth: SynthConfig = SynthConfig()
     model: ModelConfig
 
