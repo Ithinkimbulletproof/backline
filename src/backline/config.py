@@ -405,6 +405,38 @@ class ModelConfig(_Frozen):
         return self
 
 
+class TrainConfig(_Frozen):
+    """Base-model training."""
+
+    batch_size: int = Field(default=8, ge=1)
+    grad_accum: int = Field(default=4, ge=1)
+    lr: float = Field(default=3e-4, gt=0)
+    weight_decay: float = Field(default=0.1, ge=0)
+    warmup_steps: int = Field(default=500, ge=0)
+    max_steps: int = Field(default=20000, ge=1)
+    """Optimizer steps (each covers ``batch_size * grad_accum`` segments)."""
+    eval_every: int = Field(default=1000, ge=1)
+    checkpoint_every: int = Field(default=1000, ge=1)
+    eval_batches: int = Field(default=50, ge=1)
+    grad_clip: float = Field(default=1.0, gt=0)
+    augment: bool = True
+    memorization_prompts: int = Field(default=32, ge=0)
+    """Train and val prompts generated at every evaluation for the memorization rate."""
+    memorization_weight: float = Field(default=1.0, ge=0)
+    """Checkpoint selection: val loss + weight * memorization rate."""
+    bf16: bool = True
+    """Mixed precision on CUDA (ignored on CPU)."""
+    num_workers: int = Field(default=0, ge=0)
+
+
+class GenerationConfig(_Frozen):
+    temperature: float = Field(default=1.0, gt=0)
+    top_p: float = Field(default=0.95, gt=0, le=1)
+    variants: int = Field(default=4, ge=1, le=32)
+    constrained: bool = True
+    """Mask tokens that would break the sequence grammar (bar counts, ranges, order)."""
+
+
 # -------------------------------------------------------------------------- root
 
 
@@ -421,6 +453,8 @@ class BacklineConfig(_Frozen):
     originality: OriginalityConfig = OriginalityConfig()
     synth: SynthConfig = SynthConfig()
     model: ModelConfig
+    train: TrainConfig = TrainConfig()
+    generation: GenerationConfig = GenerationConfig()
 
 
 _PATH_KEYS = (("drums", "output_map"),)

@@ -16,3 +16,17 @@ model:
   n_heads: 4
   context_length: 1024
   dropout: 0.0
+
+train:
+  batch_size: 4
+  grad_accum: 1
+  lr: 0.002
+  warmup_steps: 5
+  max_steps: 40
+  eval_every: 20
+  checkpoint_every: 20
+  eval_batches: 4
+  memorization_prompts: 2
+
+generation:
+  variants: 2

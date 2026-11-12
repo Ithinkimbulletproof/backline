@@ -168,8 +168,35 @@ synth:
   lead_guitar_probability: 0.3
 
 model:
+  # About 60M parameters: fits a 16 GB GPU with bf16 and a 4096-token context.
   d_model: 640
   n_layers: 12
   n_heads: 10
   context_length: 4096
   dropout: 0.1
+
+train:
+  batch_size: 8
+  grad_accum: 4
+  lr: 0.0003
+  weight_decay: 0.1
+  warmup_steps: 500
+  max_steps: 20000
+  eval_every: 1000
+  checkpoint_every: 1000
+  eval_batches: 50
+  grad_clip: 1.0
+  augment: true
+  # Prompts generated at every evaluation to measure memorization (copying the corpus).
+  memorization_prompts: 32
+  # Best checkpoint = lowest val loss + weight * memorization rate.
+  memorization_weight: 1.0
+  bf16: true
+  num_workers: 0
+
+generation:
+  temperature: 1.0
+  top_p: 0.95
+  variants: 4
+  # Mask tokens that would break the sequence grammar (bar counts, ranges, order).
+  constrained: true

@@ -1,0 +1,18 @@
+# Small profile for libraries of a few hundred usable songs: about 15M parameters,
+# which memorizes less than the base model when data is scarce.
+extends: base.yaml
+
+name: small
+
+model:
+  d_model: 384
+  n_layers: 8
+  n_heads: 6
+  context_length: 4096
+  dropout: 0.15
+
+train:
+  max_steps: 8000
+  warmup_steps: 300
+  eval_every: 500
+  checkpoint_every: 500
