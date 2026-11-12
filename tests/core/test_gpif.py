@@ -7,9 +7,13 @@ from pathlib import Path
 
 import pytest
 
+from backline.config import BacklineConfig
 from backline.formats.common import ReadStats, ScoreReadError
 from backline.formats.gpif import GPIF_ENTRY, parse_gpif, read_gp
+from backline.formats.gpif_writer import write_gp
 from backline.score import TPQ, NoteFlag, Tempo
+from backline.synth import SynthSong
+from tests.support import note_signature
 
 BAR = 4 * TPQ
 
@@ -96,6 +100,31 @@ def _note(note_id: str, string: int, fret: int, extra: str = "", props: str = ""
 def _beat(beat_id: str, rhythm: str, notes: str = "", extra: str = "") -> str:
     notes_xml = f"<Notes>{notes}</Notes>" if notes else ""
     return f'<Beat id="{beat_id}">{extra}<Rhythm ref="{rhythm}"/>{notes_xml}</Beat>'
+
+
+# ------------------------------------------------------------------ round trip
+
+
+def test_round_trip_of_synthetic_songs(
+    corpus: list[SynthSong], tiny_config: BacklineConfig, tmp_path: Path
+) -> None:
+    for index, song in enumerate(corpus[:10]):
+        path = tmp_path / f"{index}.gp"
+        write_gp(song.score, path)
+        stats = ReadStats()
+        back = read_gp(path, stats=stats)
+        assert note_signature(back, tiny_config.velocity) == note_signature(
+            song.score, tiny_config.velocity
+        )
+        assert (back.title, back.artist) == (song.score.title, song.score.artist)
+        assert back.time_signatures == song.score.time_signatures
+        assert back.tempos == song.score.tempos
+        assert [t.tuning for t in back.tracks] == [t.tuning for t in song.score.tracks]
+        assert [t.role for t in back.tracks] == [t.role for t in song.score.tracks]
+        drums = next(t for t in back.tracks if t.is_percussion)
+        assert drums.instrument == "drumKit"
+        assert set(drums.percussion_names) == {n.pitch for n in drums.notes}
+        assert stats == ReadStats()
 
 
 # -------------------------------------------------------------- hand-made docs
