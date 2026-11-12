@@ -264,5 +264,81 @@ def inspect(
         )
 
 
+@app.command()
+def ingest(
+    source: Annotated[
+        Path | None,
+        typer.Argument(help="Tab library folder. Defaults to BACKLINE_TABS_DIR."),
+    ] = None,
+    config: ConfigOption = None,
+    workers: Annotated[
+        int | None, typer.Option(min=0, help="Reader processes (0 = one per core).")
+    ] = None,
+    force: Annotated[bool, typer.Option(help="Re-read files even if they did not change.")] = False,
+) -> None:
+    """Import a tab library: roles, filtering, duplicates, split, catalog and report."""
+    from backline.ingest.pipeline import LibraryPaths, run_ingest
+
+    cfg = _load(config)
+    paths = PathSettings()
+    folder = source or paths.tabs_dir
+    step = 0
+
+    def progress(done: int, total: int) -> None:
+        nonlocal step
+        if done == total or done // 50 > step:
+            step = done // 50
+            typer.echo(f"read {done}/{total}", err=True)
+
+    try:
+        report = run_ingest(
+            folder,
+            cfg,
+            LibraryPaths.from_settings(paths),
+            workers=workers,
+            force=force,
+            progress=progress,
+        )
+    except FileNotFoundError as exc:
+        typer.echo(f"error: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+    for line in report.lines():
+        typer.echo(line)
+
+
+@app.command()
+def catalog(
+    status: Annotated[
+        str | None, typer.Option(help="Only songs with this status (ok, duplicate, filtered...).")
+    ] = None,
+    limit: Annotated[int, typer.Option(min=0, help="How many songs to list.")] = 30,
+) -> None:
+    """Summarise the imported library."""
+    from collections import Counter
+
+    from backline.ingest.catalog import Catalog
+    from backline.ingest.pipeline import LibraryPaths
+
+    library = LibraryPaths.from_settings(PathSettings())
+    if not library.catalog.is_file():
+        typer.echo("no catalog yet: run `backline ingest` first", err=True)
+        raise typer.Exit(code=1)
+    with Catalog(library.catalog) as db:
+        songs = db.songs()
+        source = db.get_meta("source") or "-"
+    _row("library", source)
+    _row("songs", str(len(songs)))
+    _row(
+        "status", ", ".join(f"{k}={v}" for k, v in sorted(Counter(s.status for s in songs).items()))
+    )
+    splits = Counter(s.split for s in songs if s.status == "ok")
+    _row("splits", ", ".join(f"{k}={v}" for k, v in sorted(splits.items())) or "-")
+    shown = [s for s in songs if status is None or s.status == status][:limit]
+    for song in shown:
+        name = f"{song.artist or '?'} - {song.title or '?'}"
+        detail = song.split or song.reason
+        typer.echo(f"  {song.status:<11} {name[:50]:<50} {detail}")
+
+
 if __name__ == "__main__":  # pragma: no cover
     app()

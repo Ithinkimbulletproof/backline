@@ -3,6 +3,7 @@
 import json
 from pathlib import Path
 
+import pytest
 from typer.testing import CliRunner
 
 from backline.cli import app
@@ -15,7 +16,7 @@ runner = CliRunner()
 def test_help_lists_commands() -> None:
     result = runner.invoke(app, ["--help"])
     assert result.exit_code == 0
-    for command in ("doctor", "config", "synth", "inspect"):
+    for command in ("doctor", "config", "synth", "inspect", "ingest", "catalog"):
         assert command in result.output
 
 
@@ -84,6 +85,33 @@ def test_inspect_rejects_bad_track(tmp_path: Path) -> None:
     (path,) = tmp_path.glob("*.mid")
     result = runner.invoke(app, ["inspect", str(path), "--track", "9"])
     assert result.exit_code != 0
+
+
+def test_ingest_and_catalog(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from backline.config import load_config
+    from tests.library import build_library
+
+    monkeypatch.setenv("BACKLINE_DATA_DIR", str(tmp_path / "data"))
+    monkeypatch.setenv("BACKLINE_ARTIFACTS_DIR", str(tmp_path / "artifacts"))
+    root = tmp_path / "tabs"
+    build_library(root, load_config(TINY))
+
+    result = runner.invoke(app, ["ingest", str(root), "-c", TINY, "--workers", "1"])
+    assert result.exit_code == 0, result.output
+    assert "status       duplicate=4" in result.output
+    listing = runner.invoke(app, ["catalog", "--status", "filtered"])
+    assert listing.exit_code == 0, listing.output
+    assert "no bass track" in listing.output
+
+
+def test_catalog_without_import(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("BACKLINE_DATA_DIR", str(tmp_path / "data"))
+    assert runner.invoke(app, ["catalog"]).exit_code == 1
+
+
+def test_ingest_missing_folder(tmp_path: Path) -> None:
+    result = runner.invoke(app, ["ingest", str(tmp_path / "nope"), "-c", TINY])
+    assert result.exit_code == 1
 
 
 def test_synth_rejects_unknown_formats(tmp_path: Path) -> None:
