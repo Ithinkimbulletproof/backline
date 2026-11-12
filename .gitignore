@@ -1,0 +1,47 @@
+# Data, weights and generated artifacts: never committed.
+# Directory patterns are anchored to the repo root on purpose: an unanchored
+# `adapters/` would also hide the source package `src/backline/adapters/`.
+/data/
+/artifacts/
+/checkpoints/
+/adapters/
+/uploads/
+/media/
+/runs/
+*.pt
+*.safetensors
+*.ckpt
+*.gp3
+*.gp4
+*.gp5
+*.gpx
+*.gp
+db.sqlite3
+.env
+
+# Personal configs
+configs/*.local.yaml
+
+# Local tooling
+.claude/
+CLAUDE.md
+CLAUDE.local.md
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Editors and OS
+.idea/
+.vscode/
+Thumbs.db
+.DS_Store
