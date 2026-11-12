@@ -7,8 +7,9 @@ import guitarpro as gp
 import mido
 import pytest
 
-from backline.formats.gp5 import GRID, GP5WriteError, split_ticks, write_gp5
+from backline.formats.guitarpro import write_gp5
 from backline.formats.midi import read_midi, write_midi
+from backline.formats.tablature import GRID, TabLayoutError, split_ticks
 from backline.score import TPQ, Note, NoteFlag, Score, Tempo, TimeSignature, Track, TrackRole
 from backline.synth import SynthSong
 
@@ -129,5 +130,5 @@ def test_split_ticks_prefers_plain_durations() -> None:
 
 
 def test_split_ticks_rejects_off_grid_lengths() -> None:
-    with pytest.raises(GP5WriteError):
+    with pytest.raises(TabLayoutError):
         split_ticks(30)

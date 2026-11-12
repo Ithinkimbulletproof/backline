@@ -114,7 +114,7 @@ def synth(
     formats: Annotated[str, typer.Option(help="Comma-separated: gp5, mid.")] = "gp5,mid",
 ) -> None:
     """Generate a synthetic corpus with ground-truth harmony (for tests and demos)."""
-    from backline.formats.gp5 import write_gp5
+    from backline.formats.guitarpro import write_gp5
     from backline.formats.midi import write_midi
     from backline.synth import generate_corpus
 
