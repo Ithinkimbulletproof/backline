@@ -7,13 +7,15 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 
+import torch
+
+from backline.adapters import lora
 from backline.config import BacklineConfig
 from backline.drums import DrumMap
 from backline.formats.midi import write_midi
 from backline.ingest.roles import assign_roles
 from backline.model.generate import GenerationRequest, generate
 from backline.model.metrics import WHOLE_NOTE_STEPS, SegmentMetrics, segment_metrics
-from backline.model.transformer import Backline
 from backline.originality.check import OriginalityChecker, OriginalityReport
 from backline.score import Score, TrackRole
 from backline.theory.annotate import annotate_score
@@ -81,7 +83,7 @@ def prepare_riff(
 
 
 def generate_variants(
-    model: Backline,
+    model: torch.nn.Module,
     vocab: Vocab,
     config: BacklineConfig,
     riff: Riff,
@@ -93,6 +95,7 @@ def generate_variants(
     until_green: bool = False,
     seed: int | None = None,
     drum_map: DrumMap | None = None,
+    strength: float = 1.0,
 ) -> GenerationResult:
     """Generate variants for a riff; optionally force an edited plan and retry red ones."""
     gen = config.generation
@@ -107,6 +110,38 @@ def generate_variants(
     )
     tempo = riff.score.tempo_at(riff.score.bar_starts()[riff.bars.start])
     count = variants or gen.variants
+    with lora.strength(model, strength):
+        return _generate_all(
+            model,
+            vocab,
+            config,
+            riff,
+            request,
+            tempo,
+            count,
+            checker,
+            references,
+            until_green,
+            seed,
+            drum_map,
+        )
+
+
+def _generate_all(
+    model: torch.nn.Module,
+    vocab: Vocab,
+    config: BacklineConfig,
+    riff: Riff,
+    request: GenerationRequest,
+    tempo: float,
+    count: int,
+    checker: OriginalityChecker | None,
+    references: list[str] | None,
+    until_green: bool,
+    seed: int | None,
+    drum_map: DrumMap | None,
+) -> GenerationResult:
+    gen = config.generation
     sequences = generate(
         model,
         vocab,

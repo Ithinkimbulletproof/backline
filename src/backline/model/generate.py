@@ -7,12 +7,13 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass, field
+from typing import cast
 
 import torch
 from torch import Tensor
 
 from backline.model.grammar import Grammar, GrammarState
-from backline.model.transformer import Backline
+from backline.model.transformer import ModelShape
 from backline.tokenizer.vocab import Vocab
 
 
@@ -40,7 +41,7 @@ def _top_p(logits: Tensor, top_p: float) -> Tensor:
 
 @torch.no_grad()
 def generate(
-    model: Backline,
+    model: torch.nn.Module,
     vocab: Vocab,
     request: GenerationRequest,
     *,
@@ -63,7 +64,8 @@ def generate(
     eos = vocab.id("EOS")
 
     prefix = request.prompt + request.forced
-    budget = model.shape.context_length - len(prefix)
+    shape = cast(ModelShape, model.shape)  # also reachable through a peft wrapper
+    budget = shape.context_length - len(prefix)
     if budget <= 0:
         raise ValueError("the prompt does not leave room to generate")
     was_training = model.training

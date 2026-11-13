@@ -429,6 +429,38 @@ class TrainConfig(_Frozen):
     num_workers: int = Field(default=0, ge=0)
 
 
+class AdapterConfig(_Frozen):
+    """LoRA adapters trained on a set of reference songs."""
+
+    rank: int = Field(default=16, ge=1)
+    alpha: int = Field(default=32, ge=1)
+    dropout: float = Field(default=0.05, ge=0, lt=1)
+    target_modules: tuple[str, ...] = ("qkv", "proj", "gate", "up", "down")
+    steps: int = Field(default=600, ge=1)
+    batch_size: int = Field(default=8, ge=1)
+    lr: float = Field(default=1e-3, gt=0)
+    reference_epochs: float = Field(default=4.0, gt=0)
+    """Passes over the reference segments; sets the reference share of each batch."""
+    reference_share: float | None = Field(default=None, gt=0, le=1)
+    """Fixed share of reference segments per batch; ``None`` derives it from reference_epochs."""
+    min_share: float = Field(default=0.2, gt=0, le=1)
+    max_share: float = Field(default=0.8, gt=0, le=1)
+    eval_every: int = Field(default=100, ge=1)
+    reference_prompts: int = Field(default=8, ge=0)
+    stop_memorization: float = Field(default=0.25, ge=0, le=1)
+    """Stop early once this share of generated reference prompts copies the references."""
+    strengths: tuple[float, ...] = (1.0, 0.75, 0.5, 0.25)
+    """Strengths tried (strongest first) to recommend a default for the slider."""
+
+    @model_validator(mode="after")
+    def _check(self) -> Self:
+        if self.min_share > self.max_share:
+            raise ValueError("adapter min_share must not exceed max_share")
+        if not self.target_modules:
+            raise ValueError("adapter target_modules must not be empty")
+        return self
+
+
 class GenerationConfig(_Frozen):
     temperature: float = Field(default=1.0, gt=0)
     top_p: float = Field(default=0.95, gt=0, le=1)
@@ -454,6 +486,7 @@ class BacklineConfig(_Frozen):
     synth: SynthConfig = SynthConfig()
     model: ModelConfig
     train: TrainConfig = TrainConfig()
+    adapter: AdapterConfig = AdapterConfig()
     generation: GenerationConfig = GenerationConfig()
 
 

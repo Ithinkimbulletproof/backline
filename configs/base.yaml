@@ -194,6 +194,29 @@ train:
   bf16: true
   num_workers: 0
 
+adapter:
+  # LoRA on the attention and feed-forward projections.
+  rank: 16
+  alpha: 32
+  dropout: 0.05
+  target_modules: [qkv, proj, gate, up, down]
+  steps: 600
+  batch_size: 8
+  lr: 0.001
+  # The share of reference segments per batch follows from how many passes over the
+  # references the run should make, clipped to [min_share, max_share]. Set
+  # reference_share to fix it instead.
+  reference_epochs: 4.0
+  reference_share: null
+  min_share: 0.2
+  max_share: 0.8
+  eval_every: 100
+  # Stop early when this share of generated reference prompts copies the references.
+  reference_prompts: 8
+  stop_memorization: 0.25
+  # Strengths tried, strongest first, to recommend the slider's default.
+  strengths: [1.0, 0.75, 0.5, 0.25]
+
 generation:
   temperature: 1.0
   top_p: 0.95
