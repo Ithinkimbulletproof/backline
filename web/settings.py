@@ -25,7 +25,7 @@ class UiSettings(BaseSettings):
         env_prefix="BACKLINE_", env_file=".env", env_file_encoding="utf-8", extra="ignore"
     )
 
-    site_name: str = "Backline"
+    site_name: str = "Fazanka Records"
     """Shown in the header and the page titles."""
 
 

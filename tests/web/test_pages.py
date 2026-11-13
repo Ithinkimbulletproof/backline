@@ -23,14 +23,14 @@ def test_library_page(client: Client) -> None:
 
 @pytest.mark.django_db
 def test_site_name_is_configurable(client: Client, settings: Settings) -> None:
-    settings.SITE_NAME = "Fazanka Records"
+    settings.SITE_NAME = "My Studio"
     page = client.get("/library/").content.decode()
-    assert '<a class="brand" href="/">Fazanka Records</a>' in page
-    assert "<title>Библиотека · Fazanka Records</title>" in page
+    assert '<a class="brand" href="/">My Studio</a>' in page
+    assert "<title>Библиотека · My Studio</title>" in page
 
 
-def test_site_name_defaults_to_backline(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_site_name_defaults_to_the_label(monkeypatch: pytest.MonkeyPatch) -> None:
     from web.settings import UiSettings
 
     monkeypatch.delenv("BACKLINE_SITE_NAME", raising=False)
-    assert UiSettings(_env_file=None).site_name == "Backline"
+    assert UiSettings(_env_file=None).site_name == "Fazanka Records"
