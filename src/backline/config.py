@@ -260,6 +260,8 @@ class IngestConfig(_Frozen):
     min_notes_drums: int = Field(default=32, ge=1)
     min_coverage: float = Field(default=0.6, ge=0, le=1)
     """Bass and drums must play in at least this share of the bars where a guitar plays."""
+    fixable_coverage: float = Field(default=0.3, ge=0, le=1)
+    """Below ``min_coverage`` but at least this: triage calls the part worth filling in."""
     filename_patterns: tuple[str, ...] = ("{artist} - {title}",)
     """Patterns tried on the file name when the tab has no artist/title fields."""
     folder_is_artist: bool = True
@@ -276,6 +278,8 @@ class IngestConfig(_Frozen):
     def _check(self) -> Self:
         if self.val_fraction + self.test_fraction >= 1:
             raise ValueError("val_fraction + test_fraction must be below 1")
+        if self.fixable_coverage > self.min_coverage:
+            raise ValueError("fixable_coverage must not exceed min_coverage")
         for pattern in self.filename_patterns:
             if "{title}" not in pattern:
                 raise ValueError(f"filename pattern {pattern!r} must contain {{title}}")

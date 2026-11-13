@@ -38,6 +38,8 @@ from backline.ingest.identity import (
     resolve_metadata,
 )
 from backline.ingest.roles import RoleDecision, classify_track, rank_guitars
+from backline.ingest.triage import count as count_triage
+from backline.ingest.triage import triage
 from backline.score import Score, Track, TrackRole
 
 log = logging.getLogger(__name__)
@@ -329,6 +331,8 @@ class IngestReport:
     drums: dict[str, Any]
     ambiguous_tracks: list[dict[str, Any]] = field(default_factory=list)
     duplicate_groups: list[dict[str, Any]] = field(default_factory=list)
+    triage: dict[str, int] = field(default_factory=dict)
+    """Files per triage category (see :mod:`backline.ingest.triage`)."""
     report_path: str = ""
 
     def lines(self) -> list[str]:
@@ -357,6 +361,9 @@ class IngestReport:
             out.append(f"ambiguous    {len(self.ambiguous_tracks)} tracks (see report)")
         if self.duplicate_groups:
             out.append(f"duplicates   {len(self.duplicate_groups)} songs with several versions")
+        if self.triage:
+            summary = ", ".join(f"{k}={v}" for k, v in self.triage.items())
+            out.append(f"triage       {summary} (details: backline triage)")
         if self.report_path:
             out.append(f"report       {self.report_path}")
         return out
@@ -581,6 +588,7 @@ def _report(
         drums=drums,
         ambiguous_tracks=ambiguous,
         duplicate_groups=duplicate_groups,
+        triage=count_triage(triage(record, config) for record in records.values()),
     )
 
 

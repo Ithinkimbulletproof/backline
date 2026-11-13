@@ -99,6 +99,9 @@ ingest:
   # ...and the bass and drums must play in at least this share of the guitar's bars
   # (tabs often transcribe them only for the intro).
   min_coverage: 0.6
+  # Triage: a part below min_coverage but above this share is worth filling in by hand;
+  # below it the file is listed as not usable (`backline triage`).
+  fixable_coverage: 0.3
   # Tried on the file name when the tab has no artist/title fields.
   filename_patterns: ["{artist} - {title}"]
   folder_is_artist: true
