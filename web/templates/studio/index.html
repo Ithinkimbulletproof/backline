@@ -2,13 +2,28 @@
 {% block title %}Студия · Backline{% endblock %}
 {% block content %}
 <h1>Студия</h1>
-<p class="lead">Бас и барабаны под гитарный рифф на основе явного гармонического плана.</p>
-<ol class="steps">
-  <li>Загрузка риффа (MIDI или Guitar Pro)</li>
-  <li>Выбор песен-референсов</li>
-  <li>Гармонический план: генерация и правка</li>
-  <li>Варианты баса и барабанов с отчётом об оригинальности</li>
-  <li>Экспорт MIDI</li>
-</ol>
-<p class="muted">Каркас приложения, версия {{ version }}. Шаги появятся по мере готовности ядра.</p>
+<p class="lead">Бас и барабаны под гитарный рифф: сначала гармонический план, потом партии.</p>
+{% if not model_ready %}
+<p class="notice">Модель ещё не обучена. Импортируйте табы и запустите обучение — см. «Модель и данные».</p>
+{% endif %}
+{% if error %}<p class="error">{{ error }}</p>{% endif %}
+<section class="sec">
+  <h2><span class="num">1</span>Загрузите рифф</h2>
+  <form method="post" action="{% url 'studio:upload' %}" enctype="multipart/form-data" class="row">
+    {% csrf_token %}
+    <input type="file" name="riff" accept=".mid,.midi,.gp,.gp3,.gp4,.gp5" required>
+    <button type="submit">Загрузить</button>
+  </form>
+  <p class="muted small">MIDI из Ample Guitar или Guitar Pro ({{ suffixes }}). Тональность, размер и темп определятся автоматически.</p>
+</section>
+{% if riffs %}
+<section class="sec">
+  <h2>Недавние риффы</h2>
+  <ul class="plain">
+    {% for item in riffs %}
+    <li><a href="{% url 'studio:riff' item.pk %}">{{ item.name }}</a> <span class="muted small">· {{ item.n_bars }} такт. · {{ item.created|date:"d.m H:i" }}</span></li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
 {% endblock %}

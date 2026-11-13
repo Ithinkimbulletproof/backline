@@ -5,13 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Backline{% endblock %}</title>
   <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  <script src="{% static 'vendor/htmx.min.js' %}" defer></script>
+  {% block head %}{% endblock %}
 </head>
-<body>
+<body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
   <header class="topbar">
     <a class="brand" href="{% url 'studio:index' %}">Backline</a>
     <nav>
-      <a href="{% url 'studio:index' %}">Студия</a>
-      <a href="{% url 'library:index' %}">Библиотека</a>
+      <a href="{% url 'studio:index' %}" {% if request.resolver_match.app_name == 'studio' %}class="active"{% endif %}>Студия</a>
+      <a href="{% url 'library:index' %}" {% if request.resolver_match.url_name == 'index' and request.resolver_match.app_name == 'library' %}class="active"{% endif %}>Библиотека</a>
     </nav>
   </header>
   <main class="page">

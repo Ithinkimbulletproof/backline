@@ -1,0 +1,20 @@
+{% if selected %}
+<ul class="chips">
+  {% for song in selected %}
+  <li class="chip">{{ song.artist|default:"?" }} — {{ song.title }}
+    <button type="button" class="link" hx-post="{% url 'studio:toggle-reference' riff.pk %}" hx-vals='{"song": "{{ song.id }}"}' hx-target="#selected" aria-label="Убрать">×</button>
+  </li>
+  {% endfor %}
+</ul>
+<form class="row" hx-post="{% url 'studio:strength' riff.pk %}" hx-trigger="change" hx-target="#strength-value">
+  <label class="row tight">Сила влияния
+    <input type="range" name="strength" min="0" max="1" step="0.1" value="{{ riff.strength|stringformat:'.1f' }}">
+    <strong id="strength-value">{{ riff.strength|floatformat:1 }}</strong>
+  </label>
+</form>
+{% else %}
+<p class="muted small">Без референсов модель пишет в общем стиле библиотеки.</p>
+{% endif %}
+<div id="adapter">
+  {% include "studio/partials/adapter_status.html" %}
+</div>

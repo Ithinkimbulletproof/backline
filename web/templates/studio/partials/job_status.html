@@ -1,0 +1,8 @@
+{% if job.finished %}
+<div class="job"><span class="muted small">{% if job.status == "failed" %}Ошибка: {{ job.message }}{% else %}Готово{% endif %}</span></div>
+{% else %}
+<div class="job row" hx-get="{% url 'studio:generation-status' job.pk %}" hx-trigger="every 1s" hx-swap="outerHTML">
+  <span class="pill warning">{% if job.kind == "plan" %}Пишу план…{% else %}Пишу партии…{% endif %}</span>
+  <progress></progress>
+</div>
+{% endif %}

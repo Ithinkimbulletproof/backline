@@ -1,0 +1,15 @@
+{% if songs %}
+<ul class="plain results">
+  {% for song in songs %}
+  <li>
+    <label class="row tight">
+      <input type="checkbox" {% if song.id in riff.references %}checked{% endif %}
+             hx-post="{% url 'studio:toggle-reference' riff.pk %}" hx-vals='{"song": "{{ song.id }}"}' hx-target="#selected">
+      {{ song.artist|default:"?" }} — {{ song.title }} <span class="muted small">· {{ song.meters }} · {{ song.n_bars }} такт.</span>
+    </label>
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="muted small">Ничего не найдено.</p>
+{% endif %}

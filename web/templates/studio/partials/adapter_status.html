@@ -1,0 +1,24 @@
+{% load l10n %}{% with job=riff.adapter_job %}
+{% if not riff.references %}
+{% elif not job %}
+<div class="row">
+  <span class="pill neutral">Адаптер не подготовлен</span>
+  <button hx-post="{% url 'studio:prepare-adapter' riff.pk %}" hx-target="#adapter">Подготовить адаптер</button>
+</div>
+{% elif job.finished %}
+<div class="row">
+  {% if job.status == "failed" %}
+  <span class="pill danger">Ошибка адаптера</span> <span class="muted small">{{ job.message }}</span>
+  <button hx-post="{% url 'studio:prepare-adapter' riff.pk %}" hx-target="#adapter">Повторить</button>
+  {% else %}
+  <span class="pill success">Адаптер {{ job.get_status_display }}</span>
+  {% endif %}
+</div>
+{% else %}
+<div class="row" hx-get="{% url 'studio:adapter-status' riff.pk %}" hx-trigger="every 2s" hx-target="#adapter">
+  <span class="pill warning">Адаптер {{ job.get_status_display }}</span>
+  <progress max="1" value="{{ job.progress|unlocalize }}"></progress>
+  <span class="muted small">{{ job.message }}</span>
+</div>
+{% endif %}
+{% endwith %}

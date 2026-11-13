@@ -1,0 +1,18 @@
+{% load l10n %}<h2><span class="num">1</span>Рифф</h2>
+<form hx-post="{% url 'studio:settings' riff.pk %}" hx-target="#settings" hx-trigger="change" class="grid">
+  <label class="span2">Тональность
+    <span class="row tight">
+      <select id="riff-tonic" name="tonic">{% for pc, name in tonics %}<option value="{{ pc }}" {% if pc == riff.tonic %}selected{% endif %}>{{ name }}</option>{% endfor %}</select>
+      <select id="riff-mode" name="mode">{% for value, label in modes %}<option value="{{ value }}" {% if value == riff.mode %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+    </span>
+  </label>
+  <label>Размер <input value="{{ riff.meter }}" disabled></label>
+  <label>Темп, bpm <input id="riff-tempo" name="tempo" type="number" step="0.1" min="30" max="300" value="{{ riff.tempo|unlocalize }}"></label>
+  <label>Гитара
+    <select id="riff-track" name="track">{% for index, name in tracks %}<option value="{{ index }}" {% if index == riff.track %}selected{% endif %}>{{ name }}</option>{% endfor %}</select>
+  </label>
+  <label>С такта <input id="riff-start_bar" name="start_bar" type="number" min="1" value="{{ riff.start_bar|add:1 }}"></label>
+  <label>Тактов <input id="riff-n_bars" name="n_bars" type="number" min="1" max="{{ max_bars }}" value="{{ riff.n_bars }}"></label>
+</form>
+{% if error %}<p class="error">{{ error }}</p>{% endif %}
+<p class="muted small">Тональность и размер определены автоматически — поправьте, если нужно.</p>

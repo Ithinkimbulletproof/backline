@@ -1,0 +1,33 @@
+<h2><span class="num">3</span>Гармонический план <span class="muted small">— правится; пустая доля продолжает аккорд</span></h2>
+<form hx-post="{% url 'studio:save-plan' riff.pk %}" hx-trigger="change" hx-target="#plan" class="plan">
+  <table>
+    <thead><tr><th></th>{% for beat in beats %}<th>доля {{ beat }}</th>{% endfor %}</tr></thead>
+    <tbody>
+      {% for row in rows %}{% with bar=forloop.counter0 %}
+      <tr>
+        <th>т. {{ forloop.counter }}</th>
+        {% for cell in row %}
+        <td>
+          <input id="cell-{{ bar }}-{{ forloop.counter0 }}" name="cell-{{ bar }}-{{ forloop.counter0 }}" value="{{ cell.symbol }}" placeholder="·" aria-label="такт {{ bar|add:1 }}, доля {{ forloop.counter }}">
+          <span class="fn">{{ cell.function }}</span>
+        </td>
+        {% endfor %}
+      </tr>
+      {% endwith %}{% endfor %}
+    </tbody>
+  </table>
+</form>
+{% for message in plan_errors %}<p class="error">{{ message }}</p>{% endfor %}
+<div class="row">
+  <button hx-post="{% url 'studio:generate' riff.pk %}" hx-vals='{"kind": "plan"}' hx-target="#plan">Сгенерировать план</button>
+  <button class="primary" hx-post="{% url 'studio:generate' riff.pk %}" hx-vals='{"kind": "parts"}' hx-target="#plan">Сгенерировать партии под план</button>
+  <form hx-post="{% url 'studio:strength' riff.pk %}" hx-trigger="change" hx-swap="none">
+    <input type="hidden" name="until_green" value="off">
+    <label class="row tight small"><input type="checkbox" name="until_green" value="on" {% if riff.until_green %}checked{% endif %}> перегенерировать, пока не зелёный</label>
+  </form>
+</div>
+{% if auto_plan %}<div hx-post="{% url 'studio:generate' riff.pk %}" hx-vals='{"kind": "plan"}' hx-target="#plan" hx-trigger="load"></div>{% endif %}
+{% if plan_job and not plan_job.finished %}{% include "studio/partials/job_status.html" with job=plan_job %}{% endif %}
+{% if parts_job and not parts_job.finished %}{% include "studio/partials/job_status.html" with job=parts_job %}{% endif %}
+{% if parts_job and parts_job.status == "failed" %}<p class="error">Генерация не удалась: {{ parts_job.message }}</p>{% endif %}
+{% if plan_job and plan_job.status == "failed" %}<p class="error">План не удался: {{ plan_job.message }}</p>{% endif %}

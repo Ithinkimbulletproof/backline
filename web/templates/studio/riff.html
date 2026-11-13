@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}{{ riff.name }} · Студия · Backline{% endblock %}
+{% block head %}
+<script src="https://cdn.jsdelivr.net/combine/npm/tone@14.7.58,npm/@magenta/music@1.23.1/es6/core.js,npm/focus-visible@5,npm/html-midi-player@1.5.0" defer></script>
+{% endblock %}
+{% block content %}
+<h1>{{ riff.name }}</h1>
+{% if not model_ready %}
+<p class="notice">Модель ещё не обучена: генерация станет доступна после <code>backline train</code>.</p>
+{% endif %}
+
+<section class="sec" id="settings">
+  {% include "studio/partials/settings.html" %}
+</section>
+
+<section class="sec" id="references">
+  {% include "studio/partials/references.html" %}
+</section>
+
+<section class="sec" id="plan" hx-get="{% url 'studio:plan' riff.pk %}" hx-trigger="plan-updated from:body" hx-swap="innerHTML">
+  {% include "studio/partials/plan.html" %}
+</section>
+
+<section class="sec" id="variants" hx-get="{% url 'studio:variants' riff.pk %}" hx-trigger="variants-updated from:body" hx-swap="innerHTML">
+  {% include "studio/partials/variants.html" %}
+</section>
+{% endblock %}

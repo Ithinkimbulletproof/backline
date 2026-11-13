@@ -10,3 +10,10 @@ from web.studio.jobs import run_adapter_job
 @db_task()
 def train_adapter_task(job_id: int) -> None:
     run_adapter_job(job_id)
+
+
+@db_task()
+def generate_task(job_id: int) -> None:
+    from web.studio.services import run_generation
+
+    run_generation(job_id)

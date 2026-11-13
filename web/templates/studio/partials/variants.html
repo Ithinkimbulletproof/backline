@@ -1,0 +1,9 @@
+<h2><span class="num">4</span>Варианты</h2>
+{% if variants %}
+<div class="variants">
+  {% for variant in variants %}{% include "studio/partials/variant.html" %}{% endfor %}
+</div>
+{% else %}
+<p class="muted small">Здесь появятся варианты баса и барабанов с отчётом об оригинальности.</p>
+{% endif %}
+<p class="muted small">Проверка оригинальности — эвристика, а не юридическая гарантия.</p>

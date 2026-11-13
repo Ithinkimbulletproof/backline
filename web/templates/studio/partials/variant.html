@@ -1,0 +1,22 @@
+<article class="variant">
+  <header class="row spread">
+    <strong>Вариант {{ variant.number }}</strong>
+    {% if variant.verdict %}
+    <span class="pill {% if variant.verdict == 'green' %}success{% elif variant.verdict == 'yellow' %}warning{% else %}danger{% endif %}">
+      {% if variant.verdict == 'green' %}зелёный{% elif variant.verdict == 'yellow' %}жёлтый{% else %}красный{% endif %} · {{ variant.score }}/100
+    </span>
+    {% endif %}
+  </header>
+  {{ variant.roll|safe }}
+  <midi-player src="{{ MEDIA_URL }}{{ variant.mix_file }}" sound-font></midi-player>
+  <p class="muted small">
+    План соблюдён на {% widthratio variant.metrics.plan_adherence 1 100 %}%{% if variant.attempts > 1 %} · попыток: {{ variant.attempts }}{% endif %}
+  </p>
+  {% for part in variant.originality.parts %}{% for source in part.sources|slice:":1" %}
+  <p class="small">{% if part.part == 'bass' %}Бас{% else %}Барабаны{% endif %} похожи на: {{ source.artist|default:"?" }} — {{ source.title }}, такты {{ source.source_bars.0 }}–{{ source.source_bars.1 }} ({{ source.bars|floatformat:1 }} такта)</p>
+  {% endfor %}{% endfor %}
+  <div class="row">
+    <a class="button" href="{{ MEDIA_URL }}{{ variant.bass_file }}" download>MIDI бас</a>
+    <a class="button" href="{{ MEDIA_URL }}{{ variant.drums_file }}" download>MIDI барабаны</a>
+  </div>
+</article>

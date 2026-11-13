@@ -1,0 +1,8 @@
+<h2><span class="num">2</span>Референсы</h2>
+<div id="selected">
+  {% include "studio/partials/selected.html" %}
+</div>
+<input type="search" id="reference-query" name="q" placeholder="Поиск по библиотеке: исполнитель или песня" class="wide"
+       hx-get="{% url 'studio:reference-search' riff.pk %}" hx-trigger="input changed delay:300ms, focus once" hx-target="#reference-results">
+<div id="reference-results"
+     hx-get="{% url 'studio:reference-search' riff.pk %}" hx-trigger="references-changed from:body" hx-include="#reference-query"></div>
