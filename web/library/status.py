@@ -113,6 +113,8 @@ def _dataset(config: BacklineConfig, paths: PathSettings) -> Step:
             songs = report.get("songs", {}).get(split, 0)
             segments = report.get("segments", {}).get(split, 0)
             tokens = report.get("tokens", {}).get(split, 0)
+            if not songs:  # e.g. no test split configured
+                continue
             facts.append(
                 (label, f"{songs} песен · {segments} сегментов · {_thousands(tokens)} токенов")
             )
@@ -222,18 +224,23 @@ def _adapters(paths: PathSettings) -> list[AdapterRow]:
 
 
 def sparkline(values: list[float]) -> str:
-    """A small SVG line of ``values`` (only numbers go into the markup)."""
+    """A small SVG line of ``values`` on a log scale (only numbers go into the markup).
+
+    A loss falls steeply at first and slowly afterwards; the log scale keeps the slow
+    part visible.
+    """
     finite = [v for v in values if math.isfinite(v)]
     if len(finite) < 2:
         return ""
     stride = max(len(finite) // SPARK_POINTS, 1)
     points = finite[::stride]
-    lo, hi = min(points), max(points)
+    heights = [math.log(v) for v in points] if min(points) > 0 else points
+    lo, hi = min(heights), max(heights)
     span = hi - lo or 1.0
     dx = SPARK_WIDTH / (len(points) - 1)
     dy = (SPARK_HEIGHT - 8) / span
     coords = " ".join(
-        f"{i * dx:.1f},{SPARK_HEIGHT - 4 - (v - lo) * dy:.1f}" for i, v in enumerate(points)
+        f"{i * dx:.1f},{SPARK_HEIGHT - 4 - (v - lo) * dy:.1f}" for i, v in enumerate(heights)
     )
     return (
         f'<svg class="spark" viewBox="0 0 {SPARK_WIDTH} {SPARK_HEIGHT}" role="img" '

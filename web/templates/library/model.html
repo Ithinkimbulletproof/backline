@@ -16,7 +16,7 @@
     </dl>
     {% endif %}
     {% if step.title == "Базовая модель" and status.loss_chart %}
-    <figure class="chart">{{ status.loss_chart|safe }}<figcaption class="muted small">train loss по шагам</figcaption></figure>
+    <figure class="chart">{{ status.loss_chart|safe }}<figcaption class="muted small">train loss по шагам (логарифмическая шкала)</figcaption></figure>
     {% endif %}
     {% if step.note %}<p class="muted small">{{ step.note }}</p>{% endif %}
     <p class="small"><code>{{ step.command }}</code></p>
