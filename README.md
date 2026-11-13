@@ -103,7 +103,24 @@ uv run python manage.py run_huey      # in a second terminal
 Put your tabs into `BACKLINE_TABS_DIR`, in any folder layout and with as many versions
 as you have. `backline ingest` decides what is usable. It needs a guitar, a bass and
 drums that play through most of the song, and it writes a report on everything it
-skipped and why. As a rough guide:
+skipped and why.
+
+`backline triage` then sorts the files by what it takes to use them, with a hint for
+each one: **ok**, **review** (in the dataset, but worth a look), **fixable** (a small
+edit lets it in, e.g. a bass track named "Track 3" that the vote did not recognise, or
+a `.gpx` to re-save as `.gp`), **rejected** (no bass or drums to learn from) and
+**duplicate** (another version of a song already in). Fix what you can and run
+`backline ingest` again: only changed files are re-read.
+
+```bash
+uv run backline triage                       # counts, then fixable / rejected / review files
+uv run backline triage --csv triage.csv      # every file with its category and hints
+uv run backline triage --move-rejected ../rejected --dry-run   # then without --dry-run
+```
+
+Rejected files are moved, never deleted, to a folder outside the library. The
+Library page of the studio shows the same categories in Russian and exports a CSV for
+Excel. As a rough guide:
 
 | Usable songs | Profile | What to expect |
 |---|---|---|
@@ -237,7 +254,22 @@ feed-forward. Доля референсов в батче выводится и�
 2. `backline ingest` — импорт. Смотрите сводку и отчёт в `artifacts/reports/`:
    сколько песен попало в датасет, сколько отфильтровано и почему, какие дорожки
    определились неуверенно.
-3. `backline annotate` → `backline build-dataset` → `backline build-originality-index`
+3. `backline triage` — сортировка табов по категориям, с подсказкой для каждого файла:
+   - **годится** — попадает в датасет как есть;
+   - **стоит проверить** — попадает, но роль дорожки определена неуверенно, выброшено
+     много перкуссии или не указан исполнитель;
+   - **можно поправить** — не попадает, но правка небольшая: дорожку баса назвали
+     «Track 3» и её не распознали, бас или барабаны звучат чуть меньше порога, файл в
+     старом формате `.gpx`;
+   - **не подходит** — нет баса или барабанов, партии почти пустые: учиться не на чем;
+   - **другие версии** — песня уже есть в датасете в другой версии.
+
+   Поправьте файлы и запустите `backline ingest` ещё раз — перечитаются только
+   изменённые. `--csv файл.csv` выгружает список целиком. `--move-rejected ПАПКА`
+   переносит неподходящие файлы в папку вне библиотеки (сначала посмотрите с
+   `--dry-run`). Ничего не удаляется. Те же категории — на странице «Библиотека» в
+   студии, там же выгрузка CSV для Excel.
+4. `backline annotate` → `backline build-dataset` → `backline build-originality-index`
    → `backline train`.
 
 Сколько нужно табов. Минимум — 300–500 пригодных песен (профиль `small`), хорошо —
@@ -296,6 +328,7 @@ uv run python manage.py run_huey      # фоновые задачи, во вто
 | `backline inspect FILE` | Что Backline читает из файла: размеры, темпы, дорожки, ноты |
 | `backline ingest [DIR]` | Импорт библиотеки табов |
 | `backline catalog` | Сводка по импортированной библиотеке |
+| `backline triage` | Сортировка табов: что поправить, что убрать; `--csv`, `--move-rejected` |
 | `backline annotate` | Гармонический анализ |
 | `backline eval-theory` | Точность анализа на синтетике |
 | `backline build-dataset` | Токенизация в train/val/test |
