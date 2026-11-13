@@ -1,6 +1,7 @@
 # Backline
 
 **Bass and drums for your guitar riff, built on an explicit harmonic plan.**
+A Fazanka Records project.
 
 You give Backline a riff (MIDI or Guitar Pro) and, if you like, a few reference songs
 from your own tab library. The model first proposes a harmonic plan that you can edit,
@@ -354,4 +355,5 @@ uv run python manage.py run_huey      # фоновые задачи, во вто
 
 ## License
 
-Copyright © 2026 Ithinkimbulletproof. Licensed under the [GNU AGPL-3.0](LICENSE).
+Copyright © 2026 Ithinkimbulletproof (Fazanka Records). Licensed under the
+[GNU AGPL-3.0](LICENSE).
