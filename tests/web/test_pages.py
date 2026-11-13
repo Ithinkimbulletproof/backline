@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 import pytest
 from django.test import Client
+from pytest_django.fixtures import Settings
 
 
 @pytest.mark.django_db
@@ -18,3 +19,18 @@ def test_library_page(client: Client) -> None:
     response = client.get("/library/")
     assert response.status_code == 200
     assert "Библиотека" in response.content.decode()
+
+
+@pytest.mark.django_db
+def test_site_name_is_configurable(client: Client, settings: Settings) -> None:
+    settings.SITE_NAME = "Fazanka Records"
+    page = client.get("/library/").content.decode()
+    assert '<a class="brand" href="/">Fazanka Records</a>' in page
+    assert "<title>Библиотека · Fazanka Records</title>" in page
+
+
+def test_site_name_defaults_to_backline(monkeypatch: pytest.MonkeyPatch) -> None:
+    from web.settings import UiSettings
+
+    monkeypatch.delenv("BACKLINE_SITE_NAME", raising=False)
+    assert UiSettings(_env_file=None).site_name == "Backline"

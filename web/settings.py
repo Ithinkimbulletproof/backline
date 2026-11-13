@@ -10,10 +10,26 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
 from backline.config import PathSettings
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 PATHS = PathSettings()
+
+
+class UiSettings(BaseSettings):
+    """Look of the web UI, from ``BACKLINE_*`` variables or ``.env``."""
+
+    model_config = SettingsConfigDict(
+        env_prefix="BACKLINE_", env_file=".env", env_file_encoding="utf-8", extra="ignore"
+    )
+
+    site_name: str = "Backline"
+    """Shown in the header and the page titles."""
+
+
+SITE_NAME = UiSettings().site_name
 
 
 def _env_bool(name: str, default: bool) -> bool:
@@ -74,6 +90,7 @@ TEMPLATES = [
             "context_processors": [
                 "django.template.context_processors.request",
                 "django.template.context_processors.media",
+                "web.context_processors.site",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
             ],
