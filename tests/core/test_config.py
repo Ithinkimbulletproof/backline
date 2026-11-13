@@ -63,6 +63,16 @@ def test_deep_merge_merges_mappings_and_replaces_the_rest() -> None:
     assert base == {"a": {"x": 1, "y": [1, 2]}, "b": 1}
 
 
+def test_paths_are_relative_to_the_file_that_sets_them(tmp_path: Path) -> None:
+    inherited = load_config(_write_profile(tmp_path, {"name": "elsewhere"}))
+    assert inherited.drums.output_map == (CONFIGS / "drum_maps" / "gm.yaml").resolve()
+    (tmp_path / "kit.yaml").write_text(
+        (CONFIGS / "drum_maps" / "gm.yaml").read_text(encoding="utf-8"), encoding="utf-8"
+    )
+    own = load_config(_write_profile(tmp_path, {"drums": {"output_map": "kit.yaml"}}))
+    assert own.drums.output_map == (tmp_path / "kit.yaml").resolve()
+
+
 def test_user_profile_can_switch_bass_profile(tmp_path: Path) -> None:
     path = _write_profile(
         tmp_path, {"name": "mine", "instruments": {"bass": {"profile": "bass5_standard"}}}

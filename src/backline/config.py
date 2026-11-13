@@ -502,7 +502,6 @@ def load_config(path: Path | str | None = None) -> BacklineConfig:
     config_path = Path(path) if path is not None else PathSettings().config
     config_path = config_path.resolve()
     raw = _read_layered(config_path, seen=())
-    _resolve_paths(raw, config_path.parent)
     try:
         return BacklineConfig.model_validate(raw)
     except ValidationError as exc:
@@ -521,6 +520,8 @@ def _read_layered(path: Path, seen: tuple[Path, ...]) -> dict[str, Any]:
         raise ConfigError(f"config {path} is not valid YAML: {exc}") from exc
     if not isinstance(data, dict):
         raise ConfigError(f"config {path} must be a mapping at the top level")
+    # Relative paths are relative to the file that sets them, not to the profile loaded.
+    _resolve_paths(data, path.parent)
     parent = data.pop("extends", None)
     if parent is None:
         return data
