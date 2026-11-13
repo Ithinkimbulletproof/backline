@@ -341,6 +341,83 @@ def catalog(
 
 
 @app.command()
+def triage(
+    category: Annotated[
+        str | None,
+        typer.Option(help="Only this category: fixable, rejected, review, ok or duplicate."),
+    ] = None,
+    limit: Annotated[int, typer.Option(min=0, help="How many files to list per category.")] = 50,
+    csv: Annotated[
+        Path | None, typer.Option(help="Write every file with its category and hints to a CSV.")
+    ] = None,
+    move_rejected: Annotated[
+        Path | None,
+        typer.Option(
+            "--move-rejected",
+            help="Move the rejected files to this folder (outside the library), keeping "
+            "subfolders. Nothing is deleted.",
+        ),
+    ] = None,
+    dry_run: Annotated[
+        bool, typer.Option("--dry-run", help="With --move-rejected: only list what would move.")
+    ] = False,
+    config: ConfigOption = None,
+) -> None:
+    """Sort the imported tabs: ready, worth a look, fixable by hand, not usable, other versions."""
+    from backline.ingest import triage as sorting
+    from backline.ingest.catalog import Catalog
+    from backline.ingest.pipeline import LibraryPaths
+
+    paths = PathSettings()
+    library = LibraryPaths.from_settings(paths)
+    if not library.catalog.is_file():
+        typer.echo("no catalog yet: run `backline ingest` first", err=True)
+        raise typer.Exit(code=1)
+    known = [c.value for c in sorting.CATEGORY_ORDER]
+    if category is not None and category not in known:
+        typer.echo(f"unknown category {category!r}; use one of: {', '.join(known)}", err=True)
+        raise typer.Exit(code=2)
+    cfg = _load(config)
+    with Catalog(library.catalog) as db:
+        records = db.songs()
+        source = Path(db.get_meta("source") or paths.tabs_dir)
+    items = sorting.triage_library(records, cfg)
+    _row("library", str(source))
+    _row("files", ", ".join(f"{k}={v}" for k, v in sorting.count(i.triage for i in items).items()))
+    listed = [category] if category else ["fixable", "rejected", "review"]
+    for name in listed:
+        chosen = [i for i in items if i.triage.category == name]
+        if not chosen:
+            continue
+        typer.echo()
+        typer.echo(f"{name} ({len(chosen)})")
+        for item in chosen[:limit]:
+            typer.echo(f"  {item.record.path}")
+            for problem in item.triage.problems:
+                typer.echo(f"      {problem.describe()}")
+        if len(chosen) > limit:
+            typer.echo(f"  ... and {len(chosen) - limit} more (--limit, --csv)")
+    if csv is not None:
+        sorting.write_csv(items, csv)
+        _row("csv", str(csv))
+    if move_rejected is not None:
+        rejected = [i for i in items if i.triage.category is sorting.Category.REJECTED]
+        try:
+            result = sorting.move_files(rejected, source, move_rejected, dry_run=dry_run)
+        except sorting.MoveError as exc:
+            typer.echo(str(exc), err=True)
+            raise typer.Exit(code=1) from exc
+        verb = "would move" if dry_run else "moved"
+        for _, destination in result.moved:
+            typer.echo(f"  {verb} -> {destination}")
+        for path, why in result.skipped:
+            typer.echo(f"  skipped {path}: {why}")
+        _row(verb, f"{len(result.moved)} files to {move_rejected}")
+        if result.moved and not dry_run:
+            typer.echo("run `backline ingest` again to update the catalog")
+
+
+@app.command()
 def annotate(
     file: Annotated[
         Path | None,
