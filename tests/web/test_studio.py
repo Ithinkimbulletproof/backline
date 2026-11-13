@@ -13,6 +13,7 @@ from django.test import Client
 from pytest_django.fixtures import Settings
 
 from backline.config import BacklineConfig
+from backline.drums import load_drum_map
 from backline.formats.midi import write_midi
 from backline.score import Score, TrackRole
 from backline.synth import generate_corpus
@@ -181,3 +182,12 @@ def test_piano_roll_marks_matched_bars(tiny_config: BacklineConfig) -> None:
     assert svg.count('class="match"') == 1
     assert 'class="bass"' in svg
     assert 'class="hit kick"' in svg
+
+
+def test_drum_kit_substitutions_are_reported() -> None:
+    kit = load_drum_map(
+        Path(__file__).resolve().parents[2] / "configs" / "drum_maps" / "sd3_signature_part2.yaml"
+    )
+    warnings = services.substitution_warnings(kit, {"kick", "snare", "china"})
+    assert warnings == ["china в ките нет — сыграно Crash 2"]
+    assert services.substitution_warnings(kit, {"kick", "crash1"}) == []

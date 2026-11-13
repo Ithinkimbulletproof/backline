@@ -97,6 +97,8 @@ class Variant(models.Model):
     originality = models.JSONField(default=dict)
     metrics = models.JSONField(default=dict)
     attempts = models.PositiveSmallIntegerField(default=1)
+    warnings = models.JSONField(default=list)
+    """Drum classes the output kit lacks and that this part plays with another sound."""
     roll = models.TextField(blank=True)
     """Pre-rendered SVG piano roll."""
     bass_file = models.CharField(max_length=255, blank=True)

@@ -8,6 +8,7 @@
     {% endif %}
   </header>
   {{ variant.roll|safe }}
+  {% for warning in variant.warnings %}<p class="small"><span class="pill warning">{{ warning }}</span></p>{% endfor %}
   <midi-player src="{{ MEDIA_URL }}{{ variant.mix_file }}" sound-font></midi-player>
   <p class="muted small">
     План соблюдён на {% widthratio variant.metrics.plan_adherence 1 100 %}%{% if variant.attempts > 1 %} · попыток: {{ variant.attempts }}{% endif %}

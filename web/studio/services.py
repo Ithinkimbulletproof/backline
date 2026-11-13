@@ -16,6 +16,7 @@ from django.conf import settings
 from backline.adapters.cache import AdapterStore
 from backline.adapters.train import load_for_generation
 from backline.config import BacklineConfig, PathSettings, load_config
+from backline.drums import DrumMap
 from backline.formats.midi import write_midi
 from backline.formats.reader import read_score
 from backline.model.metrics import WHOLE_NOTE_STEPS
@@ -184,6 +185,7 @@ def _generate(job: GenerationJob, riff: Riff) -> None:
         riff.save(update_fields=["plan"])
         return
     plan = table_to_plan(riff.plan, riff.tonic, Mode(riff.mode), steps)
+    drum_map = cfg.drums.load_output_map()
     result = generate_variants(
         rt.model,
         rt.vocab,
@@ -194,7 +196,7 @@ def _generate(job: GenerationJob, riff: Riff) -> None:
         references=list(riff.references),
         until_green=riff.until_green,
         seed=job.pk,
-        drum_map=cfg.drums.load_output_map(),
+        drum_map=drum_map,
         strength=riff.strength if rt.adapter_key else 1.0,
     )
     folder = output_folder(riff, job)
@@ -237,11 +239,43 @@ def _generate(job: GenerationJob, riff: Riff) -> None:
                 "valid": variant.metrics.valid,
             },
             attempts=variant.attempts,
+            warnings=substitution_warnings(
+                drum_map, {hit.drum_class for hit in variant.decoded.drums}
+            ),
             roll=piano_roll(variant.score, groups, matched),
             bass_file=relative + files[TrackRole.BASS],
             drums_file=relative + files[TrackRole.DRUMS],
             mix_file=relative + f"variant_{number}_mix.mid",
         )
+
+
+DRUM_LABELS = {
+    "kick": "Kick",
+    "snare": "Snare",
+    "rim": "Side Stick",
+    "hh_closed": "Hi-Hat Closed",
+    "hh_pedal": "Hi-Hat Pedal",
+    "hh_open": "Hi-Hat Open",
+    "tom_floor": "Floor Tom",
+    "tom_mid": "Mid Tom",
+    "tom_high": "High Tom",
+    "crash1": "Crash 1",
+    "crash2": "Crash 2",
+    "ride": "Ride",
+    "ride_bell": "Ride Bell",
+    "china": "China",
+    "splash": "Splash",
+}
+
+
+def substitution_warnings(drum_map: DrumMap, used: set[str]) -> list[str]:
+    """A warning for each class the kit lacks that the part plays with another sound."""
+    warnings = []
+    for item in drum_map.substitutions():
+        if item.missing in used:
+            sound = DRUM_LABELS.get(item.played_as or "", f"нота {item.note}")
+            warnings.append(f"{item.missing} в ките нет — сыграно {sound}")
+    return warnings
 
 
 def _output_groups(cfg: BacklineConfig) -> dict[int, str]:
