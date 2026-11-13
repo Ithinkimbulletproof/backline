@@ -8,4 +8,5 @@ app_name = "library"
 
 urlpatterns = [
     path("", views.index, name="index"),
+    path("model/", views.model_status, name="model"),
 ]

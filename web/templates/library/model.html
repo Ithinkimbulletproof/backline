@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Модель и данные · Backline{% endblock %}
+{% block content %}
+<h1>Модель и данные</h1>
+<p class="lead">Профиль <code>{{ status.config }}</code>. Шаги идут по порядку; каждый запускается командой в терминале.</p>
+<ol class="pipeline">
+  {% for step in status.steps %}
+  <li class="sec step {% if step.done %}done{% endif %}">
+    <header class="row spread">
+      <h2>{{ step.title }}</h2>
+      <span class="pill {% if step.done %}success{% else %}neutral{% endif %}">{% if step.done %}готово{% else %}не сделано{% endif %}</span>
+    </header>
+    {% if step.facts %}
+    <dl class="facts">
+      {% for label, value in step.facts %}<dt>{{ label }}</dt><dd>{{ value }}</dd>{% endfor %}
+    </dl>
+    {% endif %}
+    {% if step.title == "Базовая модель" and status.loss_chart %}
+    <figure class="chart">{{ status.loss_chart|safe }}<figcaption class="muted small">train loss по шагам</figcaption></figure>
+    {% endif %}
+    {% if step.note %}<p class="muted small">{{ step.note }}</p>{% endif %}
+    <p class="small"><code>{{ step.command }}</code></p>
+  </li>
+  {% endfor %}
+</ol>
+
+<section class="sec">
+  <h2>Адаптеры</h2>
+  {% if status.adapters %}
+  <table class="table">
+    <thead><tr><th>Референсы</th><th>Шагов</th><th>Доля референсов</th><th>Сила</th><th>Создан</th></tr></thead>
+    <tbody>
+      {% for row in status.adapters %}
+      <tr>
+        <td>{{ row.songs }}</td>
+        <td>{{ row.steps }}{% if row.stopped_early %} <span class="muted small">(ранняя остановка)</span>{% endif %}</td>
+        <td>{{ row.reference_share|floatformat:2 }}</td>
+        <td>{{ row.strength|floatformat:1 }}</td>
+        <td class="muted small">{{ row.created }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted small">Адаптеров пока нет. Они обучаются из студии при выборе референсов или командой <code>backline adapter train --ref …</code>.</p>
+  {% endif %}
+</section>
+{% endblock %}

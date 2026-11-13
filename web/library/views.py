@@ -4,7 +4,9 @@ from django.db.models import Count
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 
+from backline.config import PathSettings, load_config
 from web.library.models import Song
+from web.library.status import pipeline_status
 
 
 def index(request: HttpRequest) -> HttpResponse:
@@ -18,4 +20,11 @@ def index(request: HttpRequest) -> HttpResponse:
         request,
         "library/index.html",
         {"statuses": statuses, "songs": songs, "total": sum(counts.values())},
+    )
+
+
+def model_status(request: HttpRequest) -> HttpResponse:
+    """What is built so far (dataset, index, model, adapters) and what to run next."""
+    return render(
+        request, "library/model.html", {"status": pipeline_status(load_config(), PathSettings())}
     )

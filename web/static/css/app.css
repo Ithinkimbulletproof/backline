@@ -229,7 +229,26 @@ svg.roll .hit.kick { fill: var(--accent); }
 svg.roll .hit.snare { fill: var(--fg); }
 svg.roll .hit.cymbals { fill: var(--warning); }
 
+/* ------------------------------------------------------------ model page */
+
+.pipeline { list-style: none; padding: 0; counter-reset: step; }
+.step h2 { margin: 0; }
+.step.done { border-left: 3px solid var(--success); }
+.facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.2rem 1rem;
+  margin: 0.75rem 0;
+  font-size: 0.9rem;
+}
+.facts dt { color: var(--muted); }
+.facts dd { margin: 0; }
+.chart { margin: 0.5rem 0; }
+svg.spark { width: 100%; max-width: 320px; height: 64px; }
+svg.spark polyline { fill: none; stroke: var(--accent); stroke-width: 1.5; }
+
 @media (max-width: 640px) {
   .topbar { flex-wrap: wrap; gap: 0.5rem 1rem; padding: 0.75rem 1rem; }
   .page { padding: 1.25rem 1rem; }
+  .facts { grid-template-columns: 1fr; }
 }

@@ -14,6 +14,7 @@
     <nav>
       <a href="{% url 'studio:index' %}" {% if request.resolver_match.app_name == 'studio' %}class="active"{% endif %}>Студия</a>
       <a href="{% url 'library:index' %}" {% if request.resolver_match.url_name == 'index' and request.resolver_match.app_name == 'library' %}class="active"{% endif %}>Библиотека</a>
+      <a href="{% url 'library:model' %}" {% if request.resolver_match.url_name == 'model' %}class="active"{% endif %}>Модель и данные</a>
     </nav>
   </header>
   <main class="page">
