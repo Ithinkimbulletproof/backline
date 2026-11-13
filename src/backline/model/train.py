@@ -252,9 +252,9 @@ class Trainer:
             record["tokens_per_second"] = tokens_seen / elapsed
             if self.step % cfg.eval_every == 0 or self.step == cfg.max_steps:
                 record |= self.evaluate()
-                metric = record["val_loss"] + cfg.memorization_weight * record.get(
-                    "memorization", 0.0
-                )
+                # Without a validation split (tiny libraries) the train loss stands in.
+                base_loss = record["val_loss"] if math.isfinite(record["val_loss"]) else total
+                metric = base_loss + cfg.memorization_weight * record.get("memorization", 0.0)
                 record["selection_metric"] = metric
                 if metric < self.best_metric:
                     self.best_metric, self.best_step = metric, self.step

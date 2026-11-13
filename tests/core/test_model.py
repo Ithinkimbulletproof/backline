@@ -166,6 +166,27 @@ def test_grammar_rejects_broken_forced_tokens(tiny_config: BacklineConfig) -> No
         )
 
 
+def test_best_checkpoint_without_validation_split(
+    workspace: dict[str, Path], tiny_config: BacklineConfig, tmp_path: Path
+) -> None:
+    import shutil
+
+    dataset = tmp_path / "dataset"
+    shutil.copytree(workspace["dataset"], dataset)
+    for suffix in ("tokens", "index.npy"):
+        source = dataset / f"test.{suffix}"
+        shutil.copy(source, dataset / f"val.{suffix}")
+    short = tiny_config.model_copy(
+        update={
+            "train": tiny_config.train.model_copy(
+                update={"max_steps": 4, "eval_every": 2, "memorization_prompts": 0}
+            )
+        }
+    )
+    Trainer(short, dataset, tmp_path / "ckpt", device="cpu").train(resume=False)
+    assert (tmp_path / "ckpt" / "best.pt").is_file()
+
+
 def test_cli_train_and_generate(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, tiny_config: BacklineConfig
 ) -> None:
