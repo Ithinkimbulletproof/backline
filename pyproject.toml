@@ -25,9 +25,9 @@ dependencies = [
 
 [project.optional-dependencies]
 # Pick exactly one torch build: `cuda` for local training, `cpu` for CI.
-cpu = ["torch>=2.7", "tensorboard>=2.17"]
-cuda = ["torch>=2.7", "tensorboard>=2.17"]
-web = ["django>=5.2,<5.3"]
+cpu = ["torch>=2.7", "tensorboard>=2.17", "peft>=0.13"]
+cuda = ["torch>=2.7", "tensorboard>=2.17", "peft>=0.13"]
+web = ["django>=5.2,<5.3", "huey>=2.5"]
 
 [project.scripts]
 backline = "backline.cli:app"
