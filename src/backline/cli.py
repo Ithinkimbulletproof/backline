@@ -547,8 +547,19 @@ def generate(
     ] = False,
     seed: Annotated[int | None, typer.Option(help="Sampling seed.")] = None,
     device: Annotated[str | None, typer.Option(help="cuda or cpu.")] = None,
+    reference: ReferenceOption = None,
+    strength: Annotated[
+        float | None,
+        typer.Option(min=0.0, max=1.0, help="Adapter strength (default: the recommended one)."),
+    ] = None,
 ) -> None:
-    """Write bass and drums for a riff: a harmonic plan first, then the parts."""
+    """Write bass and drums for a riff: a harmonic plan first, then the parts.
+
+    With --ref, the cached adapter for those references leans the parts towards them
+    (train it first with `backline adapter train`).
+    """
+    from backline.adapters.cache import AdapterStore
+    from backline.adapters.train import load_for_generation
     from backline.formats.common import ScoreReadError
     from backline.formats.reader import read_score
     from backline.model.service import export_variant, generate_variants, prepare_riff
@@ -564,11 +575,23 @@ def generate(
     if not path.is_file():
         typer.echo(f"no model at {path}: run `backline train` first", err=True)
         raise typer.Exit(code=1)
-    model, state = load_model(path, device=device)
+    _, state = load_model(path, device="cpu")
     vocab = Vocab.from_config(cfg)
     if state["vocab"] != vocab.fingerprint():
         typer.echo("the checkpoint was trained with a different vocabulary", err=True)
         raise typer.Exit(code=1)
+    refs = reference or []
+    model, adapter = load_for_generation(
+        cfg, path, refs, AdapterStore(paths.adapters_dir), device=device
+    )
+    if refs and adapter is None:
+        typer.echo(
+            "no adapter for these references yet: run `backline adapter train` first", err=True
+        )
+        raise typer.Exit(code=1)
+    chosen_strength = (
+        strength if strength is not None else (adapter.recommended_strength if adapter else 1.0)
+    )
     try:
         score = read_score(riff)
     except ScoreReadError as exc:
@@ -593,7 +616,11 @@ def generate(
         until_green=until_green,
         seed=seed,
         drum_map=cfg.drums.load_output_map(),
+        references=refs,
+        strength=chosen_strength,
     )
+    if adapter is not None:
+        _row("adapter", f"{adapter.key}, strength {chosen_strength:g}")
     _row(
         "riff",
         f"{riff.name}, bars {prepared.bars.start + 1}-{prepared.bars.stop}, "
@@ -618,6 +645,96 @@ def generate(
         files = export_variant(variant, target, f"variant_{number}")
         _row("  files", ", ".join(p.name for p in files))
     _row("folder", str(target))
+
+
+adapter_app = typer.Typer(help="LoRA adapters for sets of reference songs.", no_args_is_help=True)
+app.add_typer(adapter_app, name="adapter")
+
+ReferenceOption = Annotated[
+    list[str] | None, typer.Option("--ref", help="Song id of a reference (repeatable).")
+]
+
+
+@adapter_app.command("train")
+def adapter_train(
+    reference: ReferenceOption = None,
+    config: ConfigOption = None,
+    checkpoint: Annotated[
+        Path | None, typer.Option(help="Base checkpoint (default: best.pt).")
+    ] = None,
+    dataset: Annotated[
+        str | None, typer.Option(help="Dataset name (default: profile name).")
+    ] = None,
+    device: Annotated[str | None, typer.Option(help="cuda or cpu.")] = None,
+    force: Annotated[bool, typer.Option(help="Retrain even if the adapter is cached.")] = False,
+    progress_file: Annotated[
+        Path | None, typer.Option(help="Append progress as JSON lines (used by the web UI).")
+    ] = None,
+) -> None:
+    """Train (or fetch from the cache) the adapter for a set of reference songs."""
+    from backline.adapters.cache import AdapterStore
+    from backline.adapters.train import AdapterError, train_adapter
+    from backline.dataset.build import dataset_dir
+    from backline.originality.index import OriginalityIndex
+
+    cfg = _load(config)
+    paths = PathSettings()
+    base = checkpoint or paths.checkpoints_dir / cfg.name / "best.pt"
+    if not base.is_file():
+        typer.echo(f"no model at {base}: run `backline train` first", err=True)
+        raise typer.Exit(code=1)
+    index_dir = paths.artifacts_dir / "originality" / cfg.name
+    index = OriginalityIndex.load(index_dir) if (index_dir / "index.npz").is_file() else None
+
+    def report(step: int, total: int, record: dict[str, float]) -> None:
+        if progress_file is not None:
+            with progress_file.open("a", encoding="utf-8") as handle:
+                handle.write(json.dumps({"step": step, "total": total, **record}) + "\n")
+
+    try:
+        result = train_adapter(
+            cfg,
+            base,
+            dataset_dir(paths.artifacts_dir, dataset or cfg.name),
+            reference or [],
+            AdapterStore(paths.adapters_dir),
+            index=index,
+            device=device,
+            force=force,
+            progress=report,
+        )
+    except AdapterError as exc:
+        typer.echo(f"error: {exc}", err=True)
+        if progress_file is not None:
+            with progress_file.open("a", encoding="utf-8") as handle:
+                handle.write(json.dumps({"error": str(exc)}) + "\n")
+        raise typer.Exit(code=1) from exc
+    info = result.info
+    if progress_file is not None:
+        with progress_file.open("a", encoding="utf-8") as handle:
+            handle.write(
+                json.dumps({"done": True, "key": info.key, "cached": result.cached}) + "\n"
+            )
+    _row("adapter", f"{info.key} ({'from cache' if result.cached else 'trained'})")
+    _row("references", ", ".join(info.references))
+    _row("share", f"{info.reference_share:.0%} of each batch, {info.steps} steps")
+    _row("strength", f"recommended {info.recommended_strength:g}")
+
+
+@adapter_app.command("list")
+def adapter_list() -> None:
+    """Cached adapters, newest first."""
+    from backline.adapters.cache import AdapterStore
+
+    adapters = AdapterStore(PathSettings().adapters_dir).list()
+    if not adapters:
+        typer.echo("no adapters yet")
+        return
+    for info in adapters:
+        typer.echo(
+            f"{info.key}  {len(info.references)} refs  "
+            f"strength {info.recommended_strength:g}  {info.created}"
+        )
 
 
 @app.command("eval-theory")
