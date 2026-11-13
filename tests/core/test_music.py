@@ -98,6 +98,45 @@ def test_flat_spelling_follows_the_key() -> None:
     assert not prefers_flats(9, Mode.DORIAN)  # A dorian ~ G major
 
 
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("E5", (4, ChordQuality.POWER)),
+        ("Am", (9, ChordQuality.MINOR)),
+        ("A7", (9, ChordQuality.DOMINANT7)),
+        ("Bbm7", (10, ChordQuality.MINOR7)),
+        ("F#", (6, ChordQuality.MAJOR)),
+        ("cmaj7", (0, ChordQuality.MAJOR7)),
+        ("Dsus4", (2, ChordQuality.SUS4)),
+        ("Bdim", (11, ChordQuality.DIMINISHED)),
+        (" G+ ", (7, ChordQuality.AUGMENTED)),
+        ("N.C.", None),
+        ("-", None),
+    ],
+)
+def test_parse_chord_symbol(text: str, expected: tuple[int, ChordQuality] | None) -> None:
+    from backline.music import parse_chord_symbol
+
+    assert parse_chord_symbol(text) == expected
+
+
+@pytest.mark.parametrize("bad", ["H", "E13", "Q5", "Am9b5"])
+def test_parse_chord_symbol_rejects_unknown(bad: str) -> None:
+    from backline.music import ChordSymbolError, parse_chord_symbol
+
+    with pytest.raises(ChordSymbolError):
+        parse_chord_symbol(bad)
+
+
+def test_chord_symbols_round_trip() -> None:
+    from backline.music import parse_chord_symbol
+
+    for root in range(12):
+        for quality in ChordQuality:
+            assert parse_chord_symbol(chord_symbol(root, quality)) == (root, quality)
+            assert parse_chord_symbol(chord_symbol(root, quality, flats=True)) == (root, quality)
+
+
 def test_mode_scales() -> None:
     assert 10 in Mode.MIXOLYDIAN.scale
     assert 11 not in Mode.MIXOLYDIAN.scale

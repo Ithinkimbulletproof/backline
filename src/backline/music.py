@@ -214,6 +214,59 @@ def prefers_flats(tonic: int, mode: Mode) -> bool:
     return (tonic + offset) % 12 in FLAT_TONICS
 
 
+_SUFFIX_QUALITY: Final = {
+    "5": ChordQuality.POWER,
+    "": ChordQuality.MAJOR,
+    "maj": ChordQuality.MAJOR,
+    "m": ChordQuality.MINOR,
+    "min": ChordQuality.MINOR,
+    "-": ChordQuality.MINOR,
+    "dim": ChordQuality.DIMINISHED,
+    "o": ChordQuality.DIMINISHED,
+    "aug": ChordQuality.AUGMENTED,
+    "+": ChordQuality.AUGMENTED,
+    "sus2": ChordQuality.SUS2,
+    "sus4": ChordQuality.SUS4,
+    "sus": ChordQuality.SUS4,
+    "7": ChordQuality.DOMINANT7,
+    "maj7": ChordQuality.MAJOR7,
+    "m7": ChordQuality.MINOR7,
+    "min7": ChordQuality.MINOR7,
+}
+_CHORD_RE: Final = re.compile(r"^([A-Ga-g])([#b]?)(.*)$")
+NO_CHORD_SYMBOLS: Final = frozenset({"n.c.", "nc", "n.c", "-", "x"})
+
+
+class ChordSymbolError(ValueError):
+    """Raised for chord symbols the plan editor does not understand."""
+
+
+def parse_chord_symbol(text: str) -> tuple[int, ChordQuality] | None:
+    """``"E5"`` -> (4, POWER), ``"Bbm7"`` -> (10, MINOR7); ``"N.C."`` -> ``None``.
+
+    Raises :class:`ChordSymbolError` for anything else, so an edited plan never silently
+    turns a typo into a different chord.
+    """
+    value = text.strip()
+    if value.lower() in NO_CHORD_SYMBOLS:
+        return None
+    match = _CHORD_RE.match(value)
+    if match is None:
+        raise ChordSymbolError(f"не понимаю аккорд {text!r}")
+    letter, accidental, suffix = match.groups()
+    # "m" must stay case-sensitive ("CM7" is not "Cm7"); spelled-out words need not be.
+    word = (
+        suffix.lower() if suffix.lower().startswith(("maj", "min", "sus", "dim", "aug")) else suffix
+    )
+    quality = _SUFFIX_QUALITY.get(word)
+    if quality is None:
+        raise ChordSymbolError(f"не понимаю аккорд {text!r}")
+    root = (
+        _LETTER_PC[letter.upper()] + (1 if accidental == "#" else -1 if accidental == "b" else 0)
+    ) % 12
+    return root, quality
+
+
 class BassRole(StrEnum):
     """Harmonic role of a bass note relative to the chord it sounds against."""
 
