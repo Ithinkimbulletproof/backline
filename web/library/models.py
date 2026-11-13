@@ -15,12 +15,26 @@ class Song(models.Model):
         UNSUPPORTED = "unsupported", "формат не поддерживается"
         ERROR = "error", "ошибка чтения"
 
+    class Category(models.TextChoices):
+        """What it takes to use the file (see ``backline triage``)."""
+
+        FIXABLE = "fixable", "можно поправить"
+        REJECTED = "rejected", "не подходит"
+        REVIEW = "review", "стоит проверить"
+        OK = "ok", "годится"
+        DUPLICATE = "duplicate", "другие версии"
+
     id = models.CharField(primary_key=True, max_length=16)
     path = models.CharField(max_length=1024)
     title = models.CharField(max_length=255, blank=True)
     artist = models.CharField(max_length=255, blank=True)
     status = models.CharField(max_length=16, choices=Status.choices)
     reason = models.TextField(blank=True)
+    category = models.CharField(
+        max_length=16, choices=Category.choices, default=Category.OK, db_index=True
+    )
+    problems = models.JSONField(default=list)
+    """Triage problems as dicts (code, track, track_name, value, limit, detail)."""
     split = models.CharField(max_length=8, blank=True)
     group_id = models.CharField(max_length=16, blank=True, db_index=True)
     canonical = models.BooleanField(default=False)

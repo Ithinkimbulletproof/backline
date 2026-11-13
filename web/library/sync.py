@@ -9,7 +9,9 @@ from pathlib import Path
 
 from django.db import transaction
 
+from backline.config import BacklineConfig
 from backline.ingest.catalog import Catalog
+from backline.ingest.triage import triage
 from backline.music import pitch_name
 from web.library.models import Song, Track
 
@@ -21,8 +23,8 @@ class SyncResult:
     deleted: int
 
 
-def sync_catalog(catalog_path: Path) -> SyncResult:
-    """Replace the web-side library with the catalog's content."""
+def sync_catalog(catalog_path: Path, config: BacklineConfig) -> SyncResult:
+    """Replace the web-side library with the catalog's content, triaged."""
     with Catalog(catalog_path) as catalog:
         records = catalog.songs()
     existing = set(Song.objects.values_list("id", flat=True))
@@ -30,6 +32,7 @@ def sync_catalog(catalog_path: Path) -> SyncResult:
     with transaction.atomic():
         Song.objects.exclude(id__in=seen).delete()
         for record in records:
+            sorted_as = triage(record, config)
             Song.objects.update_or_create(
                 id=record.id,
                 defaults={
@@ -38,6 +41,8 @@ def sync_catalog(catalog_path: Path) -> SyncResult:
                     "artist": record.artist,
                     "status": record.status,
                     "reason": record.reason,
+                    "category": sorted_as.category.value,
+                    "problems": [p.to_dict() for p in sorted_as.problems],
                     "split": record.split or "",
                     "group_id": record.group_id or "",
                     "canonical": record.canonical,

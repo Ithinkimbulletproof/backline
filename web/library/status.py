@@ -80,16 +80,25 @@ def _read_json(path: Path) -> dict[str, Any] | None:
 
 
 def _import() -> Step:
-    counts = {r["status"]: r["n"] for r in Song.objects.values("status").annotate(n=Count("id"))}
-    facts = [
-        (label, str(counts[value])) for value, label in Song.Status.choices if counts.get(value)
+    counts = {
+        r["category"]: r["n"] for r in Song.objects.values("category").annotate(n=Count("id"))
+    }
+    in_dataset = Song.objects.filter(status=Song.Status.OK).count()
+    facts = [("в датасете", str(in_dataset))] if counts else []
+    facts += [
+        (label, str(counts[value])) for value, label in Song.Category.choices if counts.get(value)
     ]
+    note = (
+        "Что поправить в табах — на странице «Библиотека» или в `backline triage`."
+        if counts.get(Song.Category.FIXABLE)
+        else ""
+    )
     return Step(
         "Импорт табов",
-        bool(counts.get(Song.Status.OK)),
+        bool(in_dataset),
         "python manage.py import_tabs",
         facts,
-        "" if counts else "Положите табы в BACKLINE_TABS_DIR.",
+        note if counts else "Положите табы в BACKLINE_TABS_DIR.",
     )
 
 

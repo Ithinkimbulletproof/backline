@@ -40,7 +40,7 @@ class Command(BaseCommand):
             raise CommandError(str(exc)) from exc
         for line in report.lines():
             self.stdout.write(line)
-        result = sync_catalog(library.catalog)
+        result = sync_catalog(library.catalog, config)
         self.stdout.write(
             self.style.SUCCESS(
                 f"web library: {result.created} new, {result.updated} updated, "

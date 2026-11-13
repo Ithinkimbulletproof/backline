@@ -8,5 +8,6 @@ app_name = "library"
 
 urlpatterns = [
     path("", views.index, name="index"),
+    path("export.csv", views.export, name="export"),
     path("model/", views.model_status, name="model"),
 ]

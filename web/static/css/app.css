@@ -13,6 +13,7 @@
   --danger: #b3261e;
   --danger-soft: #fbe3e1;
   --bass: #3b6ea8;
+  --info-soft: #e3ecf7;
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
@@ -228,6 +229,30 @@ svg.roll .hit { fill: var(--muted); }
 svg.roll .hit.kick { fill: var(--accent); }
 svg.roll .hit.snare { fill: var(--fg); }
 svg.roll .hit.cymbals { fill: var(--warning); }
+
+/* ------------------------------------------------------------ library */
+
+.tabs { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 1rem 0 0.5rem; }
+.tabs a {
+  padding: 0.3rem 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--fg);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+.tabs a span { color: var(--muted); margin-left: 0.25rem; }
+.tabs a.active { border-color: var(--accent); color: var(--accent); }
+.grow { flex: 1 1 16rem; }
+.table.library td { vertical-align: top; }
+.table.library ul { margin: 0; }
+.pill.fixable { background: var(--warning-soft); color: var(--warning); }
+.pill.rejected { background: var(--danger-soft); color: var(--danger); }
+.pill.review { background: var(--info-soft); color: var(--bass); }
+.pill.ok { background: var(--success-soft); color: var(--success); }
+.pill.duplicate { background: var(--bg); color: var(--muted); border: 1px solid var(--line); }
+.pager { justify-content: center; }
 
 /* ------------------------------------------------------------ model page */
 
