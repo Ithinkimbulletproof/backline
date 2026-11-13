@@ -34,9 +34,22 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "huey.contrib.djhuey",
     "web.library",
     "web.studio",
 ]
+
+# Background jobs: Huey on SQLite (no broker), thread workers (process workers are not
+# available on Windows). Run the consumer next to the dev server: `python manage.py run_huey`.
+HUEY_FILE = Path(os.environ.get("HUEY_FILE", PATHS.data_dir / "huey.sqlite3"))
+HUEY_FILE.parent.mkdir(parents=True, exist_ok=True)
+HUEY = {
+    "huey_class": "huey.SqliteHuey",
+    "name": "backline",
+    "filename": str(HUEY_FILE),
+    "immediate": _env_bool("HUEY_IMMEDIATE", False),
+    "consumer": {"workers": 1, "worker_type": "thread"},
+}
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
