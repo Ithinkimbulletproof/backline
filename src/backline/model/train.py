@@ -90,6 +90,8 @@ class Batcher:
 
 @dataclass(slots=True)
 class TrainSummary:
+    """How a training run went: steps, the best checkpoint and the logged history."""
+
     steps: int
     best_step: int
     best_metric: float
@@ -98,6 +100,7 @@ class TrainSummary:
 
 
 def pick_device(name: str | None = None) -> torch.device:
+    """The named device, or CUDA when it is available."""
     if name:
         return torch.device(name)
     return torch.device("cuda" if torch.cuda.is_available() else "cpu")

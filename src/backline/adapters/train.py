@@ -41,6 +41,8 @@ SPLITS = ("train", "val", "test")
 
 @dataclass(frozen=True, slots=True)
 class AdapterResult:
+    """A trained or cached adapter and where it lives."""
+
     info: AdapterInfo
     path: Path
     cached: bool
@@ -51,6 +53,7 @@ class AdapterError(ValueError):
 
 
 def reference_share(config: BacklineConfig, n_reference_segments: int) -> float:
+    """Share of reference segments per batch: as configured, or enough for the wanted passes."""
     cfg = config.adapter
     if cfg.reference_share is not None:
         return cfg.reference_share

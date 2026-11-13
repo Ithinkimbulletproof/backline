@@ -55,6 +55,8 @@ class SegmentSource:
 
 @dataclass(frozen=True, slots=True)
 class Encoded:
+    """Token ids of one segment and the pitch ranges it spans."""
+
     tokens: list[int]
     target_start: int
     """Index of the ``PLAN`` token: everything from here on is predicted."""
@@ -290,6 +292,8 @@ def _pitch_range(notes: Iterable[Note], starts: list[int], bars: range) -> tuple
 
 @dataclass(frozen=True, slots=True)
 class DecodedNote:
+    """A bass note read back from tokens."""
+
     bar: int
     pos: int
     pitch: int
@@ -303,6 +307,8 @@ class DecodedNote:
 
 @dataclass(frozen=True, slots=True)
 class DecodedHit:
+    """A drum hit read back from tokens."""
+
     bar: int
     pos: int
     drum_class: str
@@ -311,6 +317,8 @@ class DecodedHit:
 
 @dataclass(frozen=True, slots=True)
 class PlanChord:
+    """A chord of the harmonic plan, as a degree of the key it starts in."""
+
     bar: int
     pos: int
     degree: int | None

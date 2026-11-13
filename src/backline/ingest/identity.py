@@ -69,6 +69,8 @@ def _pattern_regex(pattern: str) -> re.Pattern[str]:
 
 @dataclass(frozen=True, slots=True)
 class Metadata:
+    """Artist and title of a file and where each of them came from."""
+
     artist: str
     title: str
     artist_source: str
@@ -180,6 +182,8 @@ class _UnionFind:
 
 @dataclass(frozen=True, slots=True)
 class SongKeys:
+    """The keys that tie versions of one song together."""
+
     song_id: str
     name_key: str | None
     content_key: str

@@ -54,6 +54,8 @@ ProgressCallback = Callable[[int, int], None]
 
 @dataclass(slots=True)
 class DatasetReport:
+    """Counts per split, dropped segments and length statistics of a built dataset."""
+
     name: str
     path: str
     songs: dict[str, int]
@@ -83,6 +85,7 @@ class DatasetReport:
 
 
 def dataset_dir(artifacts: Path, name: str) -> Path:
+    """Folder of the dataset ``name`` under the artifacts directory."""
     return artifacts / "datasets" / name
 
 

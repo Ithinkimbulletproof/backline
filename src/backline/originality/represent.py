@@ -127,6 +127,7 @@ def drum_cells(
 
 
 def drum_sequence(notes: Sequence[Note], beats: Sequence[Beat], drums: DrumsConfig) -> DrumSequence:
+    """Beat codes of a drum part together with the beats they belong to."""
     return DrumSequence(drum_cells(notes, beats, drums), list(beats))
 
 

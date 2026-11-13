@@ -39,6 +39,8 @@ def ngram_hashes(codes: npt.NDArray[np.int64], n: int) -> npt.NDArray[np.uint64]
 
 @dataclass(slots=True)
 class SongEntry:
+    """An indexed song and the group of its versions."""
+
     song_id: str
     group: int
     artist: str

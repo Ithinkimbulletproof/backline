@@ -39,6 +39,8 @@ VERDICTS: Final = ("green", "yellow", "red")
 
 @dataclass(frozen=True, slots=True)
 class Fragment:
+    """A stretch of the checked part that matches a stretch of a corpus song (event indices)."""
+
     song: int
     query_start: int
     query_end: int
@@ -61,6 +63,8 @@ class SourceMatch:
 
 @dataclass(slots=True)
 class Similarity:
+    """How much of a part resembles a set of songs, and which ones."""
+
     longest_bars: float = 0.0
     rare_share: float = 0.0
     sources: list[SourceMatch] = field(default_factory=list)
@@ -70,6 +74,8 @@ class Similarity:
 
 @dataclass(slots=True)
 class PartReport:
+    """Verdict for one part (bass or drums) against the corpus and the references."""
+
     part: str
     corpus: Similarity
     references: Similarity | None
@@ -80,6 +86,8 @@ class PartReport:
 
 @dataclass(slots=True)
 class OriginalityReport:
+    """Verdict for a generated variant: the worst of its parts."""
+
     parts: list[PartReport]
     score: int
     verdict: str

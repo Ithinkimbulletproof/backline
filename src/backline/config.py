@@ -117,6 +117,8 @@ class BassConfig(_Frozen):
 
 
 class InstrumentsConfig(_Frozen):
+    """The riff guitar and the bass the parts are written for."""
+
     guitar: GuitarConfig
     bass: BassConfig
 
@@ -462,6 +464,8 @@ class AdapterConfig(_Frozen):
 
 
 class GenerationConfig(_Frozen):
+    """Sampling settings and the number of variants per request."""
+
     temperature: float = Field(default=1.0, gt=0)
     top_p: float = Field(default=0.95, gt=0, le=1)
     variants: int = Field(default=4, ge=1, le=32)

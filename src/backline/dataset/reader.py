@@ -20,6 +20,8 @@ from backline.tokenizer.vocab import Vocab
 
 @dataclass(frozen=True, slots=True)
 class Sample:
+    """One training sequence (possibly transposed) and where its loss starts."""
+
     tokens: npt.NDArray[np.int64]
     target_start: int
     """Loss is computed from this position on (the ``PLAN`` token and everything after)."""

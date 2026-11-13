@@ -21,6 +21,8 @@ from backline.config import ModelConfig
 
 @dataclass(frozen=True, slots=True)
 class ModelShape:
+    """Sizes of the transformer (also stored in checkpoints)."""
+
     vocab_size: int
     d_model: int
     n_layers: int
@@ -46,6 +48,8 @@ class ModelShape:
 
 
 class RMSNorm(nn.Module):
+    """Root-mean-square layer norm with a learned scale."""
+
     def __init__(self, dim: int, eps: float = 1e-6) -> None:
         super().__init__()
         self.eps = eps
@@ -75,11 +79,15 @@ def apply_rotary(x: Tensor, cos: Tensor, sin: Tensor) -> Tensor:
 
 @dataclass(slots=True)
 class LayerCache:
+    """Keys and values of the tokens seen so far, for one layer."""
+
     keys: Tensor
     values: Tensor
 
 
 class Attention(nn.Module):
+    """Causal multi-head self-attention with rotary position embeddings."""
+
     def __init__(self, shape: ModelShape) -> None:
         super().__init__()
         if shape.d_model % shape.n_heads:
@@ -120,6 +128,8 @@ class Attention(nn.Module):
 
 
 class FeedForward(nn.Module):
+    """SwiGLU feed-forward layer."""
+
     def __init__(self, shape: ModelShape) -> None:
         super().__init__()
         self.gate = nn.Linear(shape.d_model, shape.hidden, bias=False)
@@ -133,6 +143,8 @@ class FeedForward(nn.Module):
 
 
 class Block(nn.Module):
+    """Pre-norm transformer block: attention, then feed-forward, each with a residual."""
+
     def __init__(self, shape: ModelShape) -> None:
         super().__init__()
         self.norm1 = RMSNorm(shape.d_model)

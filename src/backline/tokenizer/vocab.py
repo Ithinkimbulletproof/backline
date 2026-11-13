@@ -49,6 +49,7 @@ MODES: Final = (Mode.MAJOR, Mode.MINOR, Mode.MIXOLYDIAN, Mode.DORIAN)
 
 
 def key_token(tonic: int, mode: Mode) -> str:
+    """Token of a key, e.g. ``KEY_4_minor``."""
     return f"KEY_{tonic % 12}_{mode.value}"
 
 

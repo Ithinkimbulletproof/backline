@@ -41,6 +41,8 @@ class _Expect(Enum):
 
 @dataclass(slots=True)
 class GrammarState:
+    """Where decoding stands: the current stream, what may come next and the bars so far."""
+
     stream: str = "START"
     expect: _Expect = _Expect.START
     bars: int = 0

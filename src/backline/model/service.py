@@ -41,6 +41,8 @@ class Riff:
 
 @dataclass(slots=True)
 class Variant:
+    """One generated bass and drum part with its metrics and originality report."""
+
     decoded: Decoded
     score: Score
     metrics: SegmentMetrics
@@ -50,6 +52,8 @@ class Variant:
 
 @dataclass(slots=True)
 class GenerationResult:
+    """The prepared riff and the variants written for it."""
+
     riff: Riff
     variants: list[Variant] = field(default_factory=list)
 

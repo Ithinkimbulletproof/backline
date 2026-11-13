@@ -113,6 +113,7 @@ def annotate_score(score: Score) -> Annotation:
 
 
 def annotation_to_dict(annotation: Annotation) -> dict[str, Any]:
+    """JSON-ready form of an annotation."""
     return {
         "version": FORMAT_VERSION,
         "bar_starts": annotation.bar_starts,
@@ -128,6 +129,7 @@ def annotation_to_dict(annotation: Annotation) -> dict[str, Any]:
 
 
 def annotation_from_dict(data: dict[str, Any]) -> Annotation:
+    """Read an annotation written by :func:`annotation_to_dict`."""
     if data.get("version") != FORMAT_VERSION:
         raise ValueError(f"unsupported annotation version: {data.get('version')!r}")
     return Annotation(
@@ -142,6 +144,7 @@ def annotation_from_dict(data: dict[str, Any]) -> Annotation:
 
 
 def save_annotation(annotation: Annotation, path: Path) -> None:
+    """Write an annotation as compact JSON."""
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
         json.dumps(annotation_to_dict(annotation), separators=(",", ":")), encoding="utf-8"
@@ -149,4 +152,5 @@ def save_annotation(annotation: Annotation, path: Path) -> None:
 
 
 def load_annotation(path: Path) -> Annotation:
+    """Read an annotation saved by :func:`save_annotation`."""
     return annotation_from_dict(json.loads(path.read_text(encoding="utf-8")))

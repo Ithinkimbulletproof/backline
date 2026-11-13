@@ -25,6 +25,8 @@ WHOLE_NOTE_STEPS = 96
 
 @dataclass(frozen=True, slots=True)
 class SegmentMetrics:
+    """Musical quality of one generated segment."""
+
     plan_adherence: float
     chord_tone_share: float
     passing_share: float
@@ -41,6 +43,7 @@ def _strong_positions(bar_steps: int, beats: int) -> set[int]:
 
 
 def segment_metrics(decoded: Decoded, config: BacklineConfig, n_bars: int) -> SegmentMetrics:
+    """Plan adherence, bass note roles, bass-kick coupling and validity of a decoded segment."""
     numerator, denominator = decoded.meter
     bar_steps = numerator * WHOLE_NOTE_STEPS // denominator
     beats = (

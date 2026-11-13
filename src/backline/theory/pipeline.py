@@ -40,6 +40,8 @@ class CorpusHarmony:
 
 @dataclass(slots=True)
 class AnnotateReport:
+    """Summary of an annotation run over the library."""
+
     annotated: int
     reused: int
     harmony: CorpusHarmony
